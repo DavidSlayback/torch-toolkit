@@ -5,6 +5,7 @@ from gym.vector import VectorEnv
 from functools import partial
 from ..utils import th_stack, np_stack
 
+
 def decorrelate_env(env: VectorEnv, number_of_steps: int, number_of_steps_to_return: int = 1):
     """Decorrelate environments from each other by taking random steps
 

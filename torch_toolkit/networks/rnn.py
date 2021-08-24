@@ -62,32 +62,40 @@ class ResetGRU(nn.Module):
     Args:
         input_size: Size of incoming tensor
         hidden_size: Size of GRU
-        learnable_state: Whether to do a learnable initial state or just reset to 0s
+        learnable_state: Whether to do a learnable initial state or just reset to 0s. If >1, multiple learnable states
+        layer_norm: Whether to use a layer normalized GRUCell
     """
-    def __init__(self, input_size: int, hidden_size: int, learnable_state: bool = False):
+    def __init__(self, input_size: int, hidden_size: int, learnable_state: int = 0, layer_norm: bool = False):
         super().__init__()
-        self.core = layer_init(nn.GRUCell(input_size, hidden_size), ORTHOGONAL_INIT_VALUES['sigmoid'])
+        gru_cls = LayerNormGRUCell if layer_norm else nn.GRUCell
+        self.core = layer_init(gru_cls(input_size, hidden_size), ORTHOGONAL_INIT_VALUES['sigmoid'])
         init_state = th.zeros(1, hidden_size)
-        if learnable_state: self.register_parameter('init_state', nn.Parameter(init_state))
+        if learnable_state:
+            init_state = th.tile(init_state, (learnable_state, 1))
+            self.register_parameter('init_state', nn.Parameter(init_state))
         else: self.register_buffer('init_state', init_state)
 
-    def forward(self, x: Tensor, state: Optional[Tensor] = None, reset: Optional[Tensor] = None) -> Tuple[Tensor, Tensor]:
+    def forward(self, x: Tensor, state: Optional[Tensor] = None, reset: Optional[Tensor] = None, idx: Optional[Tensor] = None) -> Tuple[Tensor, Tensor]:
         """Forward pass
 
         Args:
             x: Tensor input. Size is [T?xBxi].
             state: Tensor input for incoming state. Size is [Bxh]. If None, use initial state
             reset: Tensor input telling where to reset to initial state. Size if [T?xB]. If None, assume no resets.
+            idx: Tensor input telling which initial state to use (if resetting). If None, assume first index
         """
-        if state is None: state = self.init_state.expand(x.shape[-2], -1)
-        if x.dim() == 2: # Batch-only
-            if reset is not None: state = mask_state(state, reset, self.init_state)
+        if idx is None: idx = th.zeros(x.shape[:-1], device=x.device, dtype=th.int64)
+        if state is None: state = self.init_state[0].unsqueeze(0).expand(x.shape[-2], -1)
+        if x.dim() == 2:  # Batch-only
+            if reset is not None:
+                state = mask_state(state, reset, self.init_state[idx])
             f = self.core(x, state)
+            state = f.clone()  # State is separate
         else:  # Unroll
             T, B = x.shape[:2]
             states = []
             for t in range(T):
-                if reset is not None: state = mask_state(state, reset[t], self.init_state)
+                if reset is not None: state = mask_state(state, reset[t], self.init_state[idx[t]])
                 states.append(self.core(x[t], state))
                 state = states[-1]
             f = th.stack(states, 0)
