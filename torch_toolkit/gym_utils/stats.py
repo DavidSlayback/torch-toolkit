@@ -6,7 +6,7 @@ import warnings
 import numpy as np
 import torch as th
 
-from .. import NpBuffer, to_np, to_th
+from ..utils import NpBuffer, to_np, to_th
 
 
 metrics = ['Length', 'Return', 'DiscountedReturn']  # Metrics to measure

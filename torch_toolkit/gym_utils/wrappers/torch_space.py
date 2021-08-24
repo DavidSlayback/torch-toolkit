@@ -4,7 +4,7 @@ from typing import Union
 from gym.spaces import Box, Discrete, Space
 import numpy as np
 import torch as th
-from ... import th_device
+from ...utils import th_device
 
 """Numpy-torch converstions"""
 NP_TO_TH = {

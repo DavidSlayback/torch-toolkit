@@ -2,6 +2,7 @@ __all__ = ['NpBuffer']
 
 import numpy as np
 
+
 class NpBuffer:
     """Numpy circular buffer
 

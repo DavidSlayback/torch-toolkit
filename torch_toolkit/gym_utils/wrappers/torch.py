@@ -7,7 +7,7 @@ from gym.vector import VectorEnvWrapper, VectorEnv
 import torch as th
 Tensor = th.Tensor
 
-from ... import th_device, to_th, to_np
+from ...utils import th_device, to_th, to_np
 
 
 class PyTorchWrapper(Wrapper):
