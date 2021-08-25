@@ -39,8 +39,9 @@ class BasePOMDPBody(nn.Module):
         if ndim == 1:
             """Single-step rollout"""
             x = self.embed(x)
-            if self.embed_previous_action and prev_action is not None: x = self._embed(x, prev_action)
-            x, state = self.gru(x, state, reset, idx)
+            if self.use_gru:
+                if self.embed_previous_action and prev_action is not None: x = self._embed(x, prev_action)
+                x, state = self.gru(x, state, reset, idx)
             return self.body(x), state
         else: return self._unroll(x, state, prev_action, reset)
 
@@ -49,8 +50,9 @@ class BasePOMDPBody(nn.Module):
         """Multi-step rollout. Embedding, then concat previous action, then gru, then body"""
         T, B = x.shape
         x = self.embed(x.view(T*B, -1)).view(T, B, -1)
-        if self.embed_previous_action and prev_action is not None: x = self._embed(x, prev_action)
-        x, state = self.gru(x, state, reset, idx)
+        if self.use_gru:
+            if self.embed_previous_action and prev_action is not None: x = self._embed(x, prev_action)
+            x, state = self.gru(x, state, reset, idx)
         x = self.body(x.view(T*B, -1)).view(T, B, -1)
         return x, state
 
