@@ -1,6 +1,7 @@
 __all__ = ['ReturnScaledTD']
 
 import torch as th
+import torch
 Tensor = th.Tensor
 
 
@@ -44,4 +45,4 @@ class ReturnScaledTD(th.nn.Module):
         self.update(r_t, gamma_t, return_t)  # Do stat updates first
         sigma = ((self.r_M2 / self.count) + (self.gamma_M2 / self.count) * self.G2_mean).sqrt()  # Overall scaling factor
         batch_sigma = (r_t.var() + gamma_t.var() * (return_t ** 2).mean()).sqrt()  # Batch scaling factor
-        return th.max(th.stack((sigma, batch_sigma, self.min_v))).float().cpu().item()  # Return as float for easy uses
+        return torch.max(torch.stack((sigma, batch_sigma, self.min_v))).float().cpu().item()  # Return as float for easy uses

@@ -4,7 +4,7 @@ import torch as th
 Tensor = th.Tensor
 
 
-# @th.jit.script
+@th.jit.script
 def generalized_advantage_estimation(v_tm1_t: Tensor, gamma_t: Tensor, r_t: Tensor, lambda_: float = 1., norm_adv: bool = True):
     """Generalized advantage estimate with λ-returns. Optionally normalize advantage
 
@@ -19,7 +19,7 @@ def generalized_advantage_estimation(v_tm1_t: Tensor, gamma_t: Tensor, r_t: Tens
     deltas = (r_t + gamma_t * v_t - v_tm1)
     adv = th.zeros_like(v_t)
     lastgaelam = th.zeros_like(v_t[0])
-    for t in th.arange(v_t.shape[0] - 1, -1, -1, device=v_t.th_device):
+    for t in th.arange(v_t.shape[0] - 1, -1, -1, device=v_t.device):
         lastgaelam = adv[t] = deltas[t] + gamma_t[t] * lambda_ * lastgaelam
     ret = adv + v_tm1
     if norm_adv: adv = (adv - adv.mean()) / (adv.std() + 1e-8)
