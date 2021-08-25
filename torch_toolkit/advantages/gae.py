@@ -25,10 +25,10 @@ def generalized_advantage_estimation(v_tm1_t: Tensor, gamma_t: Tensor, r_t: Tens
     if norm_adv: adv = (adv - adv.mean()) / (adv.std() + 1e-8)
     return adv, ret
 
-# @th.jit.script
+@th.jit.script
 def lambda_returns(v_t, gamma_t, r_t, lambda_: float = 1.):
     """Compute λ-returns on their own. v_t is t=1, includes bootstrap."""
-    ret = th.cat((th.zeros_like(r_t), v_t[-1]), 0)
+    ret = th.cat((th.zeros_like(r_t), v_t[-1].unsqueeze(0)), 0)  # bsv
     inv_lambda = 1. - lambda_
     for t in th.arange(v_t.shape[0] - 1, -1, -1):
         ret[t] = r_t[t] + gamma_t[t] * (inv_lambda * v_t[t] + lambda_ * ret[t+1])

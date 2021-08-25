@@ -25,7 +25,7 @@ def sample_discrete_option(logits: Tensor, termination: Optional[Tensor] = None,
     """Return option, logprob, entropy, probs. If option is not provided, we sample one.
     If termination and prev_option are provided, we replace terminated prev_options with new option"""
     logits = logits - logits.logsumexp(dim=-1, keepdim=True)
-    probs = torch.softmax(logits, -1)
+    probs = torch.softmax(logits.detach(), -1)
     if option is None:
         with torch.no_grad():
             option = torch.multinomial(probs, 1).squeeze(-1)  # Sample full set of new options
