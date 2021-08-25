@@ -8,16 +8,40 @@ from .init import layer_init, ORTHOGONAL_INIT_VALUES
 
 
 def break_grad(x: Tensor) -> Tensor:
-    """Detach and reattach gradient (e.g., across batch boundaries)"""
+    """Detach and reattach gradient (e.g., across batch boundaries)
+
+    Args:
+        x: Input tensor
+    Returns:
+        Tensor without previous gradient history
+    """
     return x.detach_().requires_grad_()
 
 
 def mask_state(state_original: Tensor, reset: Tensor, initial_state: Tensor) -> Tensor:
+    """Replace state with initial state where reset
+
+    Args:
+        state_original: [Bxh] incoming state
+        reset: [B] float or bool tensor (1 where reset)
+        initial_state: [B/1xh] initial state to use where we reset
+    Returns:
+        modified state
+    """
     return state_original * (1. - reset.unsqueeze(-1)) + initial_state.expand_as(state_original) * reset.unsqueeze(-1)
 
 
 def update_state_with_index(state: Tensor, tidx: Tensor, ntidx: Tensor, idx_state: Tensor) -> Tensor:
-    """Update state at idx with idx_state, otherwise return state"""
+    """Update state at idx with idx_state, otherwise return state
+
+    Args:
+        state: Original state
+        tidx: bool or long tensor with indices where we update state
+        ntidx: bool or long tensor with indices where we don't update state
+        idx_state: [ntidx.shape[0]xh] Updated state
+    Returns:
+        state updated where it needs to be
+    """
     s = th.zeros_like(state)
     s[tidx] = idx_state
     s[ntidx] = state[ntidx]

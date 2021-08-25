@@ -1,7 +1,8 @@
-__all__ = ['layer_init', 'ORTHOGONAL_INIT_VALUES', 'ORTHOGONAL_INIT_VALUES_TORCH']
+__all__ = ['layer_init', 'ORTHOGONAL_INIT_VALUES', 'ORTHOGONAL_INIT_VALUES_TORCH', 'pi_init', 'v_init', 'beta_init', 'rnn_init']
 
 import torch.nn.init as init
 import torch.nn as nn
+from functools import partial
 
 ORTHOGONAL_INIT_VALUES_TORCH = {
     nn.ReLU: 2. ** 0.5,  # He et. al 2015
@@ -24,9 +25,21 @@ ORTHOGONAL_INIT_VALUES = {
 
 
 def layer_init(layer, std=ORTHOGONAL_INIT_VALUES['relu'], bias_const=0.0):
-    """Orthogonal layer initialization with variable gain. Ignore LayerNorm"""
+    """Orthogonal layer initialization with variable gain. Ignore LayerNorm
+
+    Args:
+        layer: nn.Module to be initialized
+        std: Gain applied in orthogonal initialization
+        bias_const: bias used for layers with bias
+    """
     for n, p in layer.named_parameters():
         if n.startswith('ln'): continue
         if 'weight' in n: init.orthogonal_(p, std)
         else: init.constant_(p, bias_const)
     return layer
+
+
+"""Common init schemes"""
+rnn_init = beta_init = partial(layer_init, ORTHOGONAL_INIT_VALUES['sigmoid'], 0.)
+pi_init = partial(layer_init, ORTHOGONAL_INIT_VALUES['pi'], 0.)
+v_init = partial(layer_init, ORTHOGONAL_INIT_VALUES['linear'], 0.)
