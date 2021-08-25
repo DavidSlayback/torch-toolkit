@@ -16,6 +16,7 @@ class ReturnScaledTD(th.nn.Module):
         self.register_buffer('min_v', th.tensor(v_init, dtype=th.float64))  # Minimum scale applied when we receive a new signal. Noise of linear value layer
         # self.min_v = Tensor(v_init).double()
         self.register_buffer('count', th.zeros((), dtype=th.int64))  # Count
+        self.register_buffer('return_count', th.zeros((), dtype=th.int64))  # Return count (may be fewer than rewards)
         self.register_buffer('r_mean', th.zeros((), dtype=th.float64))  # Reward mean
         self.register_buffer('r_M2', th.ones((), dtype=th.float64))  # Reward 2nd moment
         self.register_buffer('gamma_mean', th.zeros((), dtype=th.float64))  # Discount mean
@@ -25,19 +26,31 @@ class ReturnScaledTD(th.nn.Module):
     @th.jit.export
     def update(self, r_t: Tensor, gamma_t: Tensor, return_t: Tensor):
         """gamma_t is (1-d_t) * gamma (0 on episode boundary, gamma o.w.)"""
+        self.update_returns(return_t)
+        self.update_rewards_gamma(r_t, gamma_t)
+
+    @th.jit.export
+    def update_returns(self, returns: Tensor):
+        """Only update returns"""
+        self.return_count.add_(returns.numel())
+        delta_G = returns ** 2 - self.G2_mean
+        self.G2_mean.add_(delta_G.sum() / self.return_count)
+
+
+    def update_rewards_gamma(self, r_t: Tensor, gamma_t: Tensor):
+        """Only update rewards, discount"""
         self.count.add_(gamma_t.numel())  # Handles both T and B dimensions
         # Update all means
         delta_r = r_t - self.r_mean
         self.r_mean.add_(delta_r.sum() / self.count)
         delta_gamma = gamma_t - self.gamma_mean
         self.gamma_mean.add_(delta_gamma.sum() / self.count)
-        delta_G = return_t ** 2 - self.G2_mean
-        self.G2_mean.add_(delta_G.sum() / self.count)
         # Update M2 using new mean
         delta2_r = r_t - self.r_mean
         self.r_M2.add_((delta_r * delta2_r).sum())
         delta2_gamma = gamma_t - self.gamma_mean
         self.gamma_M2.add_((delta_gamma * delta2_gamma).sum())
+
 
     @th.no_grad()
     def forward(self, r_t: Tensor, gamma_t: Tensor, return_t: Tensor):
