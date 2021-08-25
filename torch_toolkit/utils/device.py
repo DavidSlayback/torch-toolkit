@@ -46,7 +46,7 @@ def to_np(buffer_: Union[Array, Tensor, Dict, Iterable, Any]):
 
 
 def th_stack(buffer_: Union[Tuple, List], device: Union[str, th.device] = 'cpu') -> Tensor:
-    """Stack iterable along 0-th dimension"""
+    """Stack iterable along 0-th dimension as torch tensor"""
     example = buffer_[0]  # Get example
     if isinstance(example, Tensor): return th.stack(buffer_).to(device)
     elif isinstance(example, Array): return to_th(np.stack(buffer_), device)
@@ -55,6 +55,7 @@ def th_stack(buffer_: Union[Tuple, List], device: Union[str, th.device] = 'cpu')
 
 
 def np_stack(buffer_: Union[Tuple, List]) -> Array:
+    """Stack iterable along 0-th dimension as numpy array"""
     example = buffer_[0]
     if isinstance(example, Tensor): return th.stack(buffer_).cpu().numpy()
     elif isinstance(example, Array): return np.stack(buffer_)

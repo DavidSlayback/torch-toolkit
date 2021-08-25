@@ -40,6 +40,6 @@ def layer_init(layer, std=ORTHOGONAL_INIT_VALUES['relu'], bias_const=0.0):
 
 
 """Common init schemes"""
-rnn_init = beta_init = partial(layer_init, ORTHOGONAL_INIT_VALUES['sigmoid'], 0.)
-pi_init = partial(layer_init, ORTHOGONAL_INIT_VALUES['pi'], 0.)
-v_init = partial(layer_init, ORTHOGONAL_INIT_VALUES['linear'], 0.)
+rnn_init = beta_init = partial(layer_init, std=ORTHOGONAL_INIT_VALUES['sigmoid'])
+pi_init = partial(layer_init, std=ORTHOGONAL_INIT_VALUES['pi'])
+v_init = partial(layer_init, std=ORTHOGONAL_INIT_VALUES['linear'])
