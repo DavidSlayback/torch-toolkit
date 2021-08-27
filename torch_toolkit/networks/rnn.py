@@ -107,12 +107,13 @@ class ResetGRU(nn.Module):
             state: Tensor input for incoming state. Size is [Bxh]. If None, use initial state
             reset: Tensor input telling where to reset to initial state. Size if [T?xB]. If None, assume no resets.
             idx: Tensor input telling which initial state to use (if resetting). If None, assume first index
+        Returns:
+            (output [T?xBxi], last state[Bxi]) tuple
         """
         if idx is None: idx = th.zeros(x.shape[:-1], device=x.device, dtype=th.int64)
         if state is None: state = self.init_state[0].unsqueeze(0).expand(x.shape[-2], -1)
         if x.dim() == 2:  # Batch-only
-            if reset is not None:
-                state = mask_state(state, reset, self.init_state[idx])
+            if reset is not None: state = mask_state(state, reset, self.init_state[idx])
             f = self.core(x, state)
             state = f.clone()  # State is separate
         else:  # Unroll

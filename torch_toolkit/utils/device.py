@@ -1,4 +1,4 @@
-__all__ = ['th_device', 'to_th', 'to_np', 'th_stack', 'np_stack']
+__all__ = ['th_device', 'to_th', 'to_np', 'th_stack', 'np_stack', 'torch_type_to_np', 'np_type_to_torch']
 
 from typing import Union, Iterable, Dict, Tuple, Any, Optional, Sequence, List
 from numbers import Number
@@ -61,5 +61,16 @@ def np_stack(buffer_: Union[Tuple, List]) -> Array:
     elif isinstance(example, Array): return np.stack(buffer_)
     elif isinstance(example, Number): return np.array(buffer_)
     else: raise ValueError("Input cannot be converted to numpy stack")
+
+
+def torch_type_to_np(d: th.dtype) -> np.dtype:
+    """Return numpy dtype corresponding to torch dtype"""
+    return th.empty((), dtype=d).numpy().dtype
+
+
+def np_type_to_torch(d: np.dtype) -> th.dtype:
+    """Return torch dtype corresonding to numpy dtype"""
+    return th.from_numpy(np.empty((), dtype=d)).dtype
+
 
 

@@ -19,6 +19,7 @@ if __name__ == "__main__":
     agent = tjs(BasePOMDPBody(e.single_observation_space.n, e.single_action_space.n))
     tout = agent(to_th(e.reset()), prev_action=th_stack(e.action_space.sample()))
     x = th.rand(20, 64)
+    x2 = break_grad(x)
     x2 = th.rand(30, 20, 64)
     s = th.rand(20, 128)
     d = th.randint(2, (30, 20)).float()

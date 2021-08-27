@@ -34,7 +34,7 @@ class BasePOMDPBody(nn.Module):
         self._dim = self.body._dim
 
     def forward(self, x: Tensor, state: Optional[Tensor] = None,
-                prev_action: Optional[Tensor] = None, reset: Optional[Tensor] = None, idx: Optional[Tensor] = None) -> Tuple[Tensor, Tensor]:
+                prev_action: Optional[Tensor] = None, reset: Optional[Tensor] = None, idx: Optional[Tensor] = None) -> Tuple[Tensor, Optional[Tensor]]:
         ndim = x.dim()
         if ndim == 1:
             """Single-step rollout"""
@@ -46,7 +46,7 @@ class BasePOMDPBody(nn.Module):
         else: return self._unroll(x, state, prev_action, reset)
 
     def _unroll(self, x: Tensor, state: Optional[Tensor] = None,
-                prev_action: Optional[Tensor] = None, reset: Optional[Tensor] = None, idx: Optional[Tensor] = None) -> Tuple[Tensor, Tensor]:
+                prev_action: Optional[Tensor] = None, reset: Optional[Tensor] = None, idx: Optional[Tensor] = None) -> Tuple[Tensor, Optional[Tensor]]:
         """Multi-step rollout. Embedding, then concat previous action, then gru, then body"""
         T, B = x.shape
         x = self.embed(x.view(T*B, -1)).view(T, B, -1)
