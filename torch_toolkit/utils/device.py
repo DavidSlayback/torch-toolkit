@@ -9,8 +9,8 @@ Tensor = th.Tensor
 Array = np.ndarray
 
 
-def th_device(string: Union[str, th.device] = 'cuda') -> th.device:
-    """Get torch device from string? (default to cuda)"""
+def th_device(string: Optional[Union[str, th.device]] = 'cuda') -> Optional[th.device]:
+    """Get torch device from string? (default to cuda). Return None"""
     return th.device(string) if isinstance(string, str) else string
 
 
@@ -32,7 +32,7 @@ def to_th(buffer_: Union[Array, Tensor, Dict, Iterable, Any],
 
 def to_np(buffer_: Union[Array, Tensor, Dict, Iterable, Any]):
     """Move to numpy array(s)"""
-    if isinstance(buffer_, Array): return Array
+    if isinstance(buffer_, Array): return buffer_
     elif isinstance(buffer_, Tensor): return buffer_.cpu().numpy()
     elif isinstance(buffer_, Iterable):
         if isinstance(buffer_, Tuple): return type(buffer_)((to_np(b) for b in buffer_))  # Immutable
@@ -63,14 +63,14 @@ def np_stack(buffer_: Union[Tuple, List]) -> Array:
     else: raise ValueError("Input cannot be converted to numpy stack")
 
 
-def torch_type_to_np(d: th.dtype) -> np.dtype:
+def torch_type_to_np(d: Union[th.dtype, np.dtype]) -> np.dtype:
     """Return numpy dtype corresponding to torch dtype"""
-    return th.empty((), dtype=d).numpy().dtype
+    return th.empty((), dtype=d).numpy().dtype if isinstance(d, th.dtype) else d
 
 
-def np_type_to_torch(d: np.dtype) -> th.dtype:
+def np_type_to_torch(d: Union[th.dtype, np.dtype]) -> th.dtype:
     """Return torch dtype corresonding to numpy dtype"""
-    return th.from_numpy(np.empty((), dtype=d)).dtype
+    return th.from_numpy(np.empty((), dtype=d)).dtype if isinstance(d, np.dtype) else d
 
 
 
