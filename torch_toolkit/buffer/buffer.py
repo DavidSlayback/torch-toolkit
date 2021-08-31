@@ -45,6 +45,7 @@ class AgnosticRolloutBuffer:
         self._T = T
         self._B = 0
         self._keys = set()
+        self._buffer_keys = set()
         self._i = 0
         self._as_tensor = device is not None
         self.device = th_device(device)
@@ -70,6 +71,7 @@ class AgnosticRolloutBuffer:
                     base_buffer = self.convert(np.zeros(b_shape, dtype=dtype))  # Create and convert buffer
                     basekey = '_'.join(spl[1:])
                     bkey = basekey + '_buffer'  # Easy access to full buffer
+                    self._buffer_keys.add(bkey)
                     self.memory[bkey] = base_buffer
                     if spl[0] == 'next':
                         self.memory[k] = base_buffer[1:]; self.memory[basekey] = base_buffer[:-1]
@@ -98,6 +100,12 @@ class AgnosticRolloutBuffer:
         """Replace above"""
         for k, v in kwargs.items(): self.memory[k][self._i] = self.convert(v)  # Store
         self._i = self._i + 1  # Update index
+
+    def finish(self, **kwargs: ArrDict) -> None:
+        """Finish with boostraps"""
+        assert self._i == self._T
+        for k, v in kwargs.items():
+            self.memory['next_'+k][self._i - 1] = v
 
     def add_extra(self, **kwargs) -> None:
         """Add extras computed externally (e.g., advantages and returns in policy-gradient algorithms)."""
@@ -134,6 +142,7 @@ class AgnosticRolloutBuffer:
     def reset(self):
         """Reset buffer."""
         self._i = 0
+        for k in self._buffer_keys: self.memory[k][0] = self.memory[k][-1]  # Rollover buffers
 
     def get_last(self, keys: Iterable[str]):
         """Return requested keys at current idx. Useful to get items converted to tensor"""
@@ -141,8 +150,8 @@ class AgnosticRolloutBuffer:
 
     def __getitem__(self, item) -> ArrDict:
         """Access experiences at some index"""
-        # return {k: self.memory[k][item] for k in keys}
-        return {k: v[item] for k, v in self.memory.items()}
+        return {k: self.memory[k][item] for k in self._keys} # Ignore buffer keys
+        # return {k: v[item] for k, v in self.memory.items()}
 
     def _get_some(self, keys: Iterable[str], item) -> ArrDict:
         """Get only a subset of keys. No error checking here"""

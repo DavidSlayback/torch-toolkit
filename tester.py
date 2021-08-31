@@ -16,14 +16,18 @@ if __name__ == "__main__":
     b_th = AgnosticRolloutBuffer(T, 'cpu')
     b_th_c = AgnosticRolloutBuffer(T, 'cuda')
     init_dict = {'next_o': np.random.rand(B, 3, 3), 'prev_a': np.random.randint(5, size=(B,)), 'lp': th.rand(B, 5), 'v': th.rand(B,)}
-    add_dict = {'o': np.random.rand(B, 3, 3), 'a': np.random.randint(5, size=(B,)), 'lp': th.rand(B, 5), 'v': th.rand(B,) }
+    add_dict = {'next_o': np.random.rand(B, 3, 3), 'a': np.random.randint(5, size=(B,)), 'lp': th.rand(B, 5), 'v': th.rand(B,) }
     b.add(**init_dict)
     b_th.add(**init_dict)
     b_th_c.add(**init_dict)
+    inp = b.get_last(('o', 'prev_a'))
     for t in range(T):
         b.add(**add_dict)
         b_th.add(**add_dict)
         b_th_c.add(**add_dict)
+    b.finish({'o'})
+    b.reset()
+    inp2 = b.get_last(('o', 'prev_a'))
     for mb in b.mb_sample(4):
         print(mb)
     # from gym_pomdps import AutoresettingBatchPOMDP
