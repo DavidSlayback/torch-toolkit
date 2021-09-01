@@ -84,7 +84,7 @@ class ActorCriticBuffer:
 
     def _get_all(self):
         assert self._i == self._T
-        return self.convert_for_grad(self.)
+        # return self.convert_for_grad(self.)
 
     def next_rollout(self):
         """Roll inputs over"""
