@@ -9,20 +9,25 @@ from functools import partial
 from torch_toolkit.utils import to_th, th_stack
 from torch_toolkit.gym_utils import VectorObservationNormalizer, PyTorchVectorWrapper, decorrelate_env
 from torch_toolkit.networks.examples import BasePOMDPBody
+from torch.nn.functional import mse_loss
 import torch as th
 tjs = torch.jit.script
 
 if __name__ == "__main__":
-    from torch_toolkit.utils import ArrayDataclassMixin, to_th, to_np
-    @dataclassy.dataclass(slots=True)
-    class Buffer(ArrayDataclassMixin):
-        o: Union[th.Tensor, np.ndarray] = th.rand(20, 30, 5)
-        d: Union[th.Tensor, np.ndarray] = th.rand(20, 30)
-        r: Union[th.Tensor, np.ndarray] = np.random.rand(20, 30)
+    from torch_toolkit.networks.rnn import update_state_with_mask
+    mask = th.rand(30) > 0.5
+    test = th.nn.GRUCell(64, 128)
+    opt = th.optim.Adam(test.parameters(), 1e-3)
+    target = torch.rand(30, 128)
+    inp = torch.rand(30, 64)
+    tout1 = test(inp); state = tout1.clone()
+    state = update_state_with_mask(state, mask, test(inp[mask], state[mask]))
 
-    test = Buffer()
-    t = to_th(test, device='cuda')
-    t2 = to_np(t)
+    tout2 = test(inp, state)
+    loss = mse_loss(tout2, target)
+    opt.zero_grad()
+    loss.backward()
+    opt.step()
     print(3)
     # from gym_pomdps import AutoresettingBatchPOMDP
     # e = AutoresettingBatchPOMDP(gym.make('POMDP-hallway-episodic-v0'), 256, time_limit=100)
