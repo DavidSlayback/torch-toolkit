@@ -15,38 +15,42 @@ def th_device(string: Optional[Union[str, th.device]] = 'cuda') -> Optional[th.d
 
 
 def to_th(buffer_: Union[Array, Tensor, Dict, Iterable, Any],
-          device: Union[str, th.device] = 'cpu', dtype_override: Optional[th.dtype] = None):
+          device: Union[str, th.device] = 'cpu', dtype_override: Optional[th.dtype] = None, inplace: bool = False):
     """Move to torch tensor(s) of given device"""
     if isinstance(buffer_, Array): return th.from_numpy(buffer_).to(device=device, dtype=dtype_override)
     elif isinstance(buffer_, Tensor): return buffer_.to(device=device, dtype=dtype_override)
     elif isinstance(buffer_, Iterable):
-        if isinstance(buffer_, Tuple): return type(buffer_)((to_th(b, device) for b in buffer_))  # Immutable
-        elif hasattr(buffer_, '__slots__'):
-            for k in buffer_.__slots__: setattr(buffer_, k, to_th(getattr(buffer_, k))) # Hack to do my slotted dataclasses inplace
-            return buffer_
-        else:
-            for i in range(len(buffer_)): buffer_[i] = to_th(buffer_[i], device)  # Potentially avoid copy
-            return buffer_
+        return type(buffer_)(*(to_th(b, device, dtype_override) for b in buffer_))
+    #     if isinstance(buffer_, Tuple): return type(buffer_)((to_th(b, device) for b in buffer_))  # Immutable
+    #     elif hasattr(buffer_, '__slots__'):
+    #         for k in buffer_.__slots__: setattr(buffer_, k, to_th(getattr(buffer_, k))) # Hack to do my slotted dataclasses inplace
+    #         return buffer_
+    #     else:
+    #         for i in range(len(buffer_)): buffer_[i] = to_th(buffer_[i], device)  # Potentially avoid copy
+    #         return buffer_
     elif isinstance(buffer_, Dict):
-        for k in buffer_.keys(): buffer_[k] = to_th(buffer_[k], device)
+        return type(buffer_)(**{k: to_th(v, device, dtype_override) for k, v in buffer_.items()})
+        # for k in buffer_.keys(): buffer_[k] = to_th(buffer_[k], device)
     elif is_dataclass(buffer_): return type(buffer_)((to_th(b, device) for b in astuple(buffer_)))
     else: return buffer_
 
 
 def to_np(buffer_: Union[Array, Tensor, Dict, Iterable, Any]):
-    """Move to numpy array(s)"""
+    """Move to numpy array(s)."""
     if isinstance(buffer_, Array): return buffer_
     elif isinstance(buffer_, Tensor): return buffer_.cpu().numpy()
     elif isinstance(buffer_, Iterable):
-        if isinstance(buffer_, Tuple): return type(buffer_)((to_np(b) for b in buffer_))  # Immutable
-        elif hasattr(buffer_, '__slots__'):
-            for k in buffer_.__slots__: setattr(buffer_, k, to_np(getattr(buffer_, k))) # Hack to do my slotted dataclasses inplace
-            return buffer_
-        else:
-            for i in range(len(buffer_)): buffer_[i] = to_np(buffer_[i])  # Potentially avoid copy
-            return buffer_
+        return type(buffer_)(*(to_np(b) for b in buffer_))
+        # if isinstance(buffer_, Tuple): return type(buffer_)((to_np(b) for b in buffer_))  # Immutable
+        # elif hasattr(buffer_, '__slots__'):
+        #     for k in buffer_.__slots__: setattr(buffer_, k, to_np(getattr(buffer_, k))) # Hack to do my slotted dataclasses inplace
+        #     return buffer_
+        # else:
+        #     for i in range(len(buffer_)): buffer_[i] = to_np(buffer_[i])  # Potentially avoid copy
+        #     return buffer_
     elif isinstance(buffer_, Dict):
-        for k in buffer_.keys(): buffer_[k] = to_np(buffer_[k])
+        return type(buffer_)(**{k: to_np(v) for k, v in buffer_.items()})
+        # for k in buffer_.keys(): buffer_[k] = to_np(buffer_[k])
     elif is_dataclass(buffer_): return type(buffer_)((to_np(b) for b in astuple(buffer_)))
     else: return buffer_
 

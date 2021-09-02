@@ -22,7 +22,7 @@ if __name__ == "__main__":
 
     test = Buffer()
     t = to_th(test, device='cuda')
-    t = to_np(t)
+    t2 = to_np(t)
     print(3)
     # from gym_pomdps import AutoresettingBatchPOMDP
     # e = AutoresettingBatchPOMDP(gym.make('POMDP-hallway-episodic-v0'), 256, time_limit=100)
