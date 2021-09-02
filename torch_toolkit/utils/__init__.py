@@ -6,3 +6,4 @@ from .cmd_parse import *
 from .minibatch import *
 from .normalization import *
 from .timer import *
+from .collections import *

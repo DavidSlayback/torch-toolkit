@@ -21,6 +21,9 @@ def to_th(buffer_: Union[Array, Tensor, Dict, Iterable, Any],
     elif isinstance(buffer_, Tensor): return buffer_.to(device=device, dtype=dtype_override)
     elif isinstance(buffer_, Iterable):
         if isinstance(buffer_, Tuple): return type(buffer_)((to_th(b, device) for b in buffer_))  # Immutable
+        elif hasattr(buffer_, '__slots__'):
+            for k in buffer_.__slots__: setattr(buffer_, k, to_th(getattr(buffer_, k))) # Hack to do my slotted dataclasses inplace
+            return buffer_
         else:
             for i in range(len(buffer_)): buffer_[i] = to_th(buffer_[i], device)  # Potentially avoid copy
             return buffer_
@@ -36,6 +39,9 @@ def to_np(buffer_: Union[Array, Tensor, Dict, Iterable, Any]):
     elif isinstance(buffer_, Tensor): return buffer_.cpu().numpy()
     elif isinstance(buffer_, Iterable):
         if isinstance(buffer_, Tuple): return type(buffer_)((to_np(b) for b in buffer_))  # Immutable
+        elif hasattr(buffer_, '__slots__'):
+            for k in buffer_.__slots__: setattr(buffer_, k, to_np(getattr(buffer_, k))) # Hack to do my slotted dataclasses inplace
+            return buffer_
         else:
             for i in range(len(buffer_)): buffer_[i] = to_np(buffer_[i])  # Potentially avoid copy
             return buffer_

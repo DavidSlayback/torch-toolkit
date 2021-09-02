@@ -1,5 +1,6 @@
-from typing import NamedTuple
+from typing import NamedTuple, Union
 
+import dataclassy
 import gym
 import numpy as np
 import torch.jit
@@ -12,6 +13,16 @@ import torch as th
 tjs = torch.jit.script
 
 if __name__ == "__main__":
+    from torch_toolkit.utils import ArrayDataclassMixin, to_th, to_np
+    @dataclassy.dataclass(slots=True)
+    class Buffer(ArrayDataclassMixin):
+        o: Union[th.Tensor, np.ndarray] = th.rand(20, 30, 5)
+        d: Union[th.Tensor, np.ndarray] = th.rand(20, 30)
+        r: Union[th.Tensor, np.ndarray] = np.random.rand(20, 30)
+
+    test = Buffer()
+    t = to_th(test, device='cuda')
+    t = to_np(t)
     print(3)
     # from gym_pomdps import AutoresettingBatchPOMDP
     # e = AutoresettingBatchPOMDP(gym.make('POMDP-hallway-episodic-v0'), 256, time_limit=100)

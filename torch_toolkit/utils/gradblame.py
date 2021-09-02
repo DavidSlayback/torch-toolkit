@@ -4,7 +4,7 @@ __all__ = ['grads', 'graph']
 
 from collections import namedtuple
 
-from .collections_alt import ArrayDict
+from .collections import ArrayDict
 from graphviz import Digraph
 import torch
 from torch.autograd import Variable
