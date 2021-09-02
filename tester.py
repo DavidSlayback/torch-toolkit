@@ -1,3 +1,5 @@
+from typing import NamedTuple
+
 import gym
 import numpy as np
 import torch.jit
