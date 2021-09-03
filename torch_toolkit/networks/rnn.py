@@ -135,7 +135,7 @@ class ResetGRU(nn.Module):
         """Multi-step"""
         T, B = x.shape[:2]
         states = []
-        if reset is not None:
+        if reset is not None and idx is not None:
             for t in range(T):
                 state = mask_state(state, reset[t], self.init_state[idx[t]])
                 states.append(self.core(x[t], state))

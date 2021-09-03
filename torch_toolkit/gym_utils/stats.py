@@ -1,10 +1,11 @@
-__all__ = ['EnvStatisticsRecorder']
+__all__ = ['EnvStatisticsRecorder', 'VectorizedTrajectoryRecorder']
 
 from typing import Optional
 
 import warnings
 import numpy as np
 import torch as th
+import gym
 
 from ..utils import NpBuffer, to_np, to_th
 
@@ -59,3 +60,36 @@ class EnvStatisticsRecorder:
                 return {m: {m_m: m_mf(getattr(getattr(self, m), 'buffer')) for m_m, m_mf in metric_measures.items()} for m in metrics}
             else:
                 return {f'charts/{m}_{m_m}': m_mf(getattr(getattr(self, m), 'buffer')) for m in metrics for m_m, m_mf in metric_measures.items()}
+
+class VectorizedTrajectoryRecorder(gym.Wrapper):
+    """Episode statistics recorder for vectorized environments"""
+    _discount = 1.
+    def __init__(self, env, max_deque_length: int = 100, discount: float = 1.):
+        super().__init__(env)
+        B = getattr(env, 'num_envs', 1)
+        discount = getattr(env, 'discount', discount)  # Attempt to use environment discount if provided
+        self.recorder = EnvStatisticsRecorder(B, max_deque_length, discount)
+
+    def step(self, action):
+        """Step environments and record statistics"""
+        o, r, d, info = super().step(action)
+        self._step(r, d)
+        return o, r, d, info
+
+    def _step(self, reward, done):
+        """ Step AND take dones into account"""
+        self.recorder.step(reward, done)
+
+    def reset(self, discard_trajectories=False, **kwargs):
+        """Reset all env instances and counters. Optionally, clear queue of completed trajectories"""
+        o = super().reset(**kwargs)
+        self._reset_stats()
+        return o
+
+    def _reset_stats(self):
+        """Reset all counters to 0"""
+        self.recorder.clear()
+
+    def get_statistics(self, nested: bool = True):
+        """Get most recent episode statistics"""
+        return self.recorder.get_statistics(nested)

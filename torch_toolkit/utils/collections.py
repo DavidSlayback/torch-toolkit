@@ -173,7 +173,9 @@ class ArrayDict(dict):
         """Index or dot access"""
         if _is_valid_field(key): dict.__setitem__(self, key, value)  # Set field
         elif isinstance(value, type(self)):  # Matching ArrayDict, update
-            for k in self: self[k][key] = value[k]
+            for k in self:
+                if k in value: self[k][key] = value[k]
+                # self[k][key] = value[k]
         else: raise ValueError('Cannot set')
 
     def __str__(self):

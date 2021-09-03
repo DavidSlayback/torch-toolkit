@@ -21,6 +21,13 @@ def sample_discrete(logits: Tensor, action: Optional[Tensor] = None):
     return action.squeeze(-1), log_prob, entropy, probs
 
 
+def sample_bernoulli(logits: Tensor, termination: Optional[Tensor] = None):
+    """Return termination"""
+    if termination is None:
+        with torch.no_grad(): termination = torch.bernoulli(logits)
+    return termination
+
+
 def sample_discrete_option(logits: Tensor, termination: Optional[Tensor] = None, prev_option: Optional[Tensor] = None, option: Optional[Tensor] = None, ):
     """Return option, logprob, entropy, probs. If option is not provided, we sample one.
     If termination and prev_option are provided, we replace terminated prev_options with new option"""

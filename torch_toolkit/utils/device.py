@@ -19,8 +19,10 @@ def to_th(buffer_: Union[Array, Tensor, Dict, Iterable, Any],
     """Move to torch tensor(s) of given device"""
     if isinstance(buffer_, Array): return th.from_numpy(buffer_).to(device=device, dtype=dtype_override)
     elif isinstance(buffer_, Tensor): return buffer_.to(device=device, dtype=dtype_override)
+    elif isinstance(buffer_, Dict):
+        return type(buffer_)(**{k: to_th(v, device, dtype_override) for k, v in buffer_.items()})
     elif isinstance(buffer_, Iterable):
-        return type(buffer_)(*(to_th(b, device, dtype_override) for b in buffer_))
+        return type(buffer_)((to_th(b, device, dtype_override) for b in buffer_))
     #     if isinstance(buffer_, Tuple): return type(buffer_)((to_th(b, device) for b in buffer_))  # Immutable
     #     elif hasattr(buffer_, '__slots__'):
     #         for k in buffer_.__slots__: setattr(buffer_, k, to_th(getattr(buffer_, k))) # Hack to do my slotted dataclasses inplace
@@ -28,8 +30,6 @@ def to_th(buffer_: Union[Array, Tensor, Dict, Iterable, Any],
     #     else:
     #         for i in range(len(buffer_)): buffer_[i] = to_th(buffer_[i], device)  # Potentially avoid copy
     #         return buffer_
-    elif isinstance(buffer_, Dict):
-        return type(buffer_)(**{k: to_th(v, device, dtype_override) for k, v in buffer_.items()})
         # for k in buffer_.keys(): buffer_[k] = to_th(buffer_[k], device)
     elif is_dataclass(buffer_): return type(buffer_)((to_th(b, device) for b in astuple(buffer_)))
     else: return buffer_
@@ -40,7 +40,7 @@ def to_np(buffer_: Union[Array, Tensor, Dict, Iterable, Any]):
     if isinstance(buffer_, Array): return buffer_
     elif isinstance(buffer_, Tensor): return buffer_.cpu().numpy()
     elif isinstance(buffer_, Iterable):
-        return type(buffer_)(*(to_np(b) for b in buffer_))
+        return type(buffer_)((to_np(b) for b in buffer_))
         # if isinstance(buffer_, Tuple): return type(buffer_)((to_np(b) for b in buffer_))  # Immutable
         # elif hasattr(buffer_, '__slots__'):
         #     for k in buffer_.__slots__: setattr(buffer_, k, to_np(getattr(buffer_, k))) # Hack to do my slotted dataclasses inplace
