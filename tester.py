@@ -16,10 +16,17 @@ tjs = torch.jit.script
 
 if __name__ == "__main__":
     from torch_toolkit.networks.rnn import update_state_with_mask
-    from torch_toolkit.networks import module_init
+    from torch_toolkit.networks import ImageBOWEmbedding
+    import gym_minigrid
+    e = gym.make('MiniGrid-FourRooms-v0')
+    o_n = e.observation_space
+    tnet = ImageBOWEmbedding(o_n['image'].high.max(), 128)
+    t = e.reset()['image']
+    tx = th.transpose(th.transpose(th.from_numpy(t).unsqueeze(0), 1, 3), 2,3)
+    tout = tnet(tx)
     from torch_toolkit.networks.examples import BasePOMDPBody
     tnet = BasePOMDPBody(18, 5, gru_layer_norm=True, gru_init_state_learnable=1)
-    module_init(tnet)
+    # module_init(tnet)
     n, p = list(zip(*tnet.named_modules()))
     t2 = nn.BatchNorm2d(768)
     mask = th.rand(30) > 0.5
