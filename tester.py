@@ -11,10 +11,17 @@ from torch_toolkit.gym_utils import VectorObservationNormalizer, PyTorchVectorWr
 from torch_toolkit.networks.examples import BasePOMDPBody
 from torch.nn.functional import mse_loss
 import torch as th
+import torch.nn as nn
 tjs = torch.jit.script
 
 if __name__ == "__main__":
     from torch_toolkit.networks.rnn import update_state_with_mask
+    from torch_toolkit.networks import module_init
+    from torch_toolkit.networks.examples import BasePOMDPBody
+    tnet = BasePOMDPBody(18, 5, gru_layer_norm=True, gru_init_state_learnable=1)
+    module_init(tnet)
+    n, p = list(zip(*tnet.named_modules()))
+    t2 = nn.BatchNorm2d(768)
     mask = th.rand(30) > 0.5
     test = th.nn.GRUCell(64, 128)
     opt = th.optim.Adam(test.parameters(), 1e-3)
