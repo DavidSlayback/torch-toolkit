@@ -21,6 +21,9 @@ class NpBuffer:
         """Add numpy array to deque"""
         B = other.size
         if B:
+            if B > self.max_length: # Discard earlier results
+                other = other[-self.max_length:]
+                B = other.size
             idxes = np.arange(self.index, self.index + B)
             idxes[idxes >= self.max_length] -= self.max_length  # Roll over
             self.buffer[idxes] = other  # Store

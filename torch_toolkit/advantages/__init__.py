@@ -1,3 +1,3 @@
 from .common import *
-from .return_scaling import *
-from .gae import *
+from .th.return_scaling import *
+from .th.gae import *

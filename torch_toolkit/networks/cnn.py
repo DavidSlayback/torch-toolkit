@@ -1,4 +1,4 @@
-__all__ = ['conv2d_output_shape', 'CNN', 'calculate_same_pad', 'ImageBOWEmbedding']
+__all__ = ['conv2d_output_shape', 'CNN', 'same_padding', 'ImageBOWEmbedding']
 
 import math
 from functools import partial
@@ -8,12 +8,53 @@ import torch as th
 
 Tensor = th.Tensor
 import torch.nn as nn
+import numpy as np
 
 Conv2dParam = Union[int, Tuple[int, int]]
 Conv3dParam = Union[int, Tuple[int, int, int]]
 
 from .init import layer_init, ORTHOGONAL_INIT_VALUES_TORCH
 from .activation import maybe_inplace
+
+
+def same_padding(in_size: Tuple[int, int], filter_size: Tuple[int, int],
+                 stride_size: Union[int, Tuple[int, int]]
+                 ) -> (Union[int, Tuple[int, int]], Tuple[int, int]):
+    """Note: Padding is added to match TF conv2d `same` padding. See
+    www.tensorflow.org/versions/r0.12/api_docs/python/nn/convolution
+    Args:
+        in_size (tuple): Rows (Height), Column (Width) for input
+        stride_size (Union[int,Tuple[int, int]]): Rows (Height), column (Width)
+            for stride. If int, height == width.
+        filter_size (tuple): Rows (Height), column (Width) for filter
+    Returns:
+        padding (tuple): For input into torch.nn.ZeroPad2d.
+        output (tuple): Output shape after padding and convolution.
+    """
+    in_height, in_width = in_size
+    if isinstance(filter_size, int):
+        filter_height, filter_width = filter_size, filter_size
+    else:
+        filter_height, filter_width = filter_size
+    if isinstance(stride_size, (int, float)):
+        stride_height, stride_width = int(stride_size), int(stride_size)
+    else:
+        stride_height, stride_width = int(stride_size[0]), int(stride_size[1])
+
+    out_height = np.ceil(float(in_height) / float(stride_height))
+    out_width = np.ceil(float(in_width) / float(stride_width))
+
+    pad_along_height = int(
+        ((out_height - 1) * stride_height + filter_height - in_height))
+    pad_along_width = int(
+        ((out_width - 1) * stride_width + filter_width - in_width))
+    pad_top = pad_along_height // 2
+    pad_bottom = pad_along_height - pad_top
+    pad_left = pad_along_width // 2
+    pad_right = pad_along_width - pad_left
+    padding = (pad_left, pad_right, pad_top, pad_bottom)
+    output = (out_height, out_width)
+    return padding, output
 
 
 def calculate_same_pad(input_h, input_w, strides, filter_h, filter_w):
