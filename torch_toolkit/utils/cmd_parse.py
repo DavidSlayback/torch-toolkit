@@ -1,10 +1,10 @@
 __all__ = ['str_to_iterable', 'str_to_schedule', 'str_to_act']
 
-from typing import Type, Iterable, Callable
+from typing import Type, Iterable, Callable, Optional
 import math
 
 
-def str_to_iterable(string: str, return_type: Type = int, return_fn: Callable[[...], Iterable] = list) -> Iterable:
+def str_to_iterable(string: Optional[str], return_type: Type = int, return_fn: Callable[[...], Iterable] = list) -> Optional[Iterable]:
     """Convert argument string into an interable
 
     Args:
@@ -14,6 +14,7 @@ def str_to_iterable(string: str, return_type: Type = int, return_fn: Callable[[.
     Returns:
         iterable: Iterable with elements
     """
+    if string == 'None': return None
     string = string.strip()  # Remove outer whitespace
     delims = string[0] + string[-1]  # Surrounding context (i.e., (), [], <>, etc)
     if not delims.isnumeric(): string = string.strip(delims)  # Remove it
