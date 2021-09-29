@@ -14,7 +14,7 @@ Conv2dParam = Union[int, Tuple[int, int]]
 Conv3dParam = Union[int, Tuple[int, int, int]]
 
 from .init import layer_init, ORTHOGONAL_INIT_VALUES_TORCH
-from .activation import maybe_inplace
+from .activation_util import maybe_inplace
 
 
 def same_padding(in_size: Tuple[int, int], filter_size: Tuple[int, int],

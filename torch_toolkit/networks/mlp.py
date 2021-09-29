@@ -9,7 +9,7 @@ Tensor = th.Tensor
 
 from functools import partial
 from .init import layer_init, ORTHOGONAL_INIT_VALUES_TORCH
-from .activation import maybe_inplace
+from .activation_util import maybe_inplace
 
 
 class MLP(nn.Module):
