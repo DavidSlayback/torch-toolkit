@@ -1,4 +1,4 @@
-__all__ = ['sample_discrete', 'sample_discrete_option', 'sample_continuous', 'sample_sac_continuous']
+__all__ = ['sample_discrete', 'sample_discrete_option', 'sample_continuous', 'sample_sac_continuous', 'sample_bernoulli']
 
 import math
 from typing import Optional
@@ -38,7 +38,7 @@ def sample_discrete_option(logits: Tensor, termination: Optional[Tensor] = None,
     """Return option, logprob, entropy, probs. If option is not provided, we sample one.
     If termination and prev_option are provided, we replace terminated prev_options with new option"""
     logits = logits - logits.logsumexp(dim=-1, keepdim=True)
-    probs = torch.softmax(logits.detach(), -1)
+    probs = torch.softmax(logits, -1)
     if option is None:
         with torch.no_grad():
             option = torch.multinomial(probs, 1).squeeze(-1)  # Sample full set of new options
@@ -46,7 +46,7 @@ def sample_discrete_option(logits: Tensor, termination: Optional[Tensor] = None,
                 option = torch.where(termination > 0, option, prev_option)  # Replace previous options where terminated
     log_prob = logits.gather(-1, option.unsqueeze(-1)).squeeze(-1)
     entropy = -(logits * probs).sum(-1)
-    return option, log_prob, entropy, probs
+    return option, log_prob, entropy, probs.detach()
 
 
 def sample_continuous(mean: Tensor, log_std: Tensor, action: Optional[Tensor] = None):
