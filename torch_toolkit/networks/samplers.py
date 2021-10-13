@@ -4,9 +4,10 @@ import math
 from typing import Optional
 
 import torch
-
+from ..utils import batched_index
 Tensor = torch.Tensor
 from torch.distributions.utils import _standard_normal
+from torch.nn.functional import binary_cross_entropy_with_logits
 
 """Jit-compatible action sampling"""
 def sample_discrete(logits: Tensor, action: Optional[Tensor] = None):
@@ -21,11 +22,16 @@ def sample_discrete(logits: Tensor, action: Optional[Tensor] = None):
     return action.squeeze(-1), log_prob, entropy, probs
 
 
-def sample_bernoulli(logits: Tensor, termination: Optional[Tensor] = None):
+def sample_bernoulli(logits: Tensor, prev_option: Optional[Tensor] = None, termination: Optional[Tensor] = None):
     """Return termination"""
+    if prev_option is not None:
+        logits = batched_index(logits, prev_option)  # Select to just previous option
+    probs = torch.sigmoid(logits)
     if termination is None:
-        with torch.no_grad(): termination = torch.bernoulli(logits)
-    return termination
+        with torch.no_grad(): termination = torch.bernoulli(probs)
+    entropy = binary_cross_entropy_with_logits(logits, probs, reduction='none')
+    lp = -binary_cross_entropy_with_logits(logits, termination, reduction='none')
+    return termination, lp, entropy, probs
 
 
 def sample_discrete_option(logits: Tensor, termination: Optional[Tensor] = None, prev_option: Optional[Tensor] = None, option: Optional[Tensor] = None, ):
