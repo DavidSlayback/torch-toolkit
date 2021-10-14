@@ -24,12 +24,13 @@ def sample_discrete(logits: Tensor, action: Optional[Tensor] = None):
 
 def sample_bernoulli(logits: Tensor, prev_option: Optional[Tensor] = None, termination: Optional[Tensor] = None):
     """Return termination"""
+    probs = torch.sigmoid(logits)
     if prev_option is not None:
         logits = batched_index(logits, prev_option)  # Select to just previous option
-    probs = torch.sigmoid(logits)
+    probs_w = torch.sigmoid(logits)
     if termination is None:
-        with torch.no_grad(): termination = torch.bernoulli(probs)
-    entropy = binary_cross_entropy_with_logits(logits, probs, reduction='none')
+        with torch.no_grad(): termination = torch.bernoulli(probs_w)
+    entropy = binary_cross_entropy_with_logits(logits, probs_w, reduction='none')
     lp = -binary_cross_entropy_with_logits(logits, termination, reduction='none')
     return termination, lp, entropy, probs
 
