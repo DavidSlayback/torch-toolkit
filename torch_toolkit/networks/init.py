@@ -47,8 +47,7 @@ rnn_init = beta_init = partial(layer_init, std=ORTHOGONAL_INIT_VALUES['sigmoid']
 pi_init = partial(layer_init, std=ORTHOGONAL_INIT_VALUES['pi'])
 v_init = partial(layer_init, std=ORTHOGONAL_INIT_VALUES['linear'])
 
-NORM_CLASSES = (nn.LayerNorm, nn.modules.batchnorm._NormBase, nn.modules.batchnorm._LazyNormBase,
-                nn.GroupNorm)
+NORM_CLASSES = (nn.LayerNorm, nn.modules.batchnorm._NormBase, nn.GroupNorm)
 def module_init(module: nn.Module,
                 default_init_value: float = ORTHOGONAL_INIT_VALUES['relu'],
                 specific_init: Dict[str, float] = {'actor_head': ORTHOGONAL_INIT_VALUES['pi'],
