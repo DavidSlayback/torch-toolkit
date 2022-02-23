@@ -26,7 +26,7 @@ def sample_bernoulli(logits: Tensor, prev_option: Optional[Tensor] = None, termi
     """Return termination"""
     probs = torch.sigmoid(logits)
     if prev_option is not None:
-        logits = batched_index(logits, prev_option)  # Select to just previous option
+        logits = batched_index(prev_option, logits)  # Select to just previous option
     probs_w = torch.sigmoid(logits)
     if termination is None:
         with torch.no_grad(): termination = torch.bernoulli(probs_w)
