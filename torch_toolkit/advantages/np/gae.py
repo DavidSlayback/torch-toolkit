@@ -7,14 +7,14 @@ from numba import njit
 
 
 @njit
-def generalized_advantage_estimation_np(v_tm1_t: Array, gamma_t: Array, r_t: Array,
+def generalized_advantage_estimation_np(v_tm1_t: Array, r_t: Array, gamma_t: Array,
                                         lambda_: float = 1., norm_adv: bool = False) -> Tuple[Array, Array]:
     """Generalized advantage estimate with λ-returns. Optionally normalize advantage
 
     Args:
         v_tm1_t: [T+1xB?] values of rollout and boostrap
-        gamma_t: [TxB?] (episode done after step t signal * discount)
         r_t: [TxB?] rewards
+        gamma_t: [TxB?] episode done after step t signal * discount
         lambda_: Lambda mixing parameter. Default 1 results in basic discounted return
         norm_adv: Whether to normalize advantage as in PPO. Default False
     Returns:
@@ -34,13 +34,13 @@ def generalized_advantage_estimation_np(v_tm1_t: Array, gamma_t: Array, r_t: Arr
 
 
 @njit
-def lambda_returns_np(v_t: Array, gamma_t: Array, r_t: Array, lambda_: float = 1.) -> Array:
+def lambda_returns_np(v_t: Array, r_t: Array, gamma_t: Array, lambda_: float = 1.) -> Array:
     """Compute λ-returns on their own.
 
     Args:
         v_t: [TxB?] values of rollout from step 1 including bootstrap
-        gamma_t: [TxB?] episode done after step t signal * discount
         r_t: [TxB?] rewards
+        gamma_t: [TxB?] episode done after step t signal * discounts
         lambda_: Lambda mixing parameter. Default 1 results in basic discounted return
     Returns:
         ret: λ-returns for t=0->T

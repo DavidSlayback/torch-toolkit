@@ -6,14 +6,14 @@ Tensor = th.Tensor
 
 
 @th.jit.script
-def generalized_advantage_estimation(v_tm1_t: Tensor, gamma_t: Tensor, r_t: Tensor,
+def generalized_advantage_estimation(v_tm1_t: Tensor, r_t: Tensor, gamma_t: Tensor,
                                      lambda_: float = 1., norm_adv: bool = False) -> Tuple[Tensor, Tensor]:
     """Generalized advantage estimate with λ-returns. Optionally normalize advantage
 
     Args:
         v_tm1_t: [T+1xB?] values of rollout and boostrap
-        gamma_t: [TxB?] (episode done after step t signal * discount)
         r_t: [TxB?] rewards
+        gamma_t: [TxB?] (episode done after step t signal * discount)
         lambda_: Lambda mixing parameter. Default 1 results in basic discounted return
         norm_adv: Whether to normalize advantage as in PPO. Default False
     Returns:
@@ -32,13 +32,13 @@ def generalized_advantage_estimation(v_tm1_t: Tensor, gamma_t: Tensor, r_t: Tens
 
 
 @th.jit.script
-def lambda_returns(v_t: Tensor, gamma_t: Tensor, r_t: Tensor, lambda_: float = 1.) -> Tensor:
+def lambda_returns(v_t: Tensor, r_t: Tensor, gamma_t: Tensor, lambda_: float = 1.) -> Tensor:
     """Compute λ-returns on their own.
 
     Args:
         v_t: [TxB?] values of rollout from step 1 including bootstrap
-        gamma_t: [TxB?] episode done after step t signal * discount
         r_t: [TxB?] rewards
+        gamma_t: [TxB?] episode done after step t signal * discount
         lambda_: Lambda mixing parameter. Default 1 results in basic discounted return
     Returns:
         ret: λ-returns for t=0->T
