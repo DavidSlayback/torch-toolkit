@@ -47,10 +47,15 @@ def lambda_returns_np(v_t: Array, r_t: Array, gamma_t: Array, lambda_: float = 1
     """
     inv_lambda = 1. - lambda_
     g = v_t[-1]
-    ret = np.zeros_like(r_t)
-    for t in range(v_t.shape[0] - 1, -1, -1):
-        g = ret[t] = r_t[t] + gamma_t[t] * (inv_lambda * v_t[t] + lambda_ * g)
-    return ret
+    G = np.zeros_like(r_t)
+    T = r_t.shape[0]
+    if inv_lambda:
+        for t in range(T-1, -1, 0):
+            g = G[t] = r_t[t] + gamma_t[t] * (inv_lambda * v_t[t] + lambda_ * g)
+    else:
+        for t in range(T-1, -1, 0):
+            g = G[t] = r_t[t] + gamma_t[t] * g
+    return G
 
 
 
