@@ -41,7 +41,7 @@ def th_unravel_index(indices: Tensor, shape: Tuple[int]) -> Tensor:
     return coords
 
 
-def batched_index(t: Tensor, idx: Tensor) -> Tensor:
+def batched_index(idx: Tensor, t: Tensor) -> Tensor:
     """Return contents of t at n-D array idx. Leading dim of t must match dims of idx"""
     dim = len(idx.shape)
     assert idx.shape == t.shape[:dim]
