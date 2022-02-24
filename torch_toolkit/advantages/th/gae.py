@@ -46,12 +46,11 @@ def lambda_returns(v_t: Tensor, r_t: Tensor, gamma_t: Tensor, lambda_: float = 1
     g = v_t[-1]
     inv_lambda = 1. - lambda_
     G = th.zeros_like(r_t)
-    T = r_t.shape[0]
     if inv_lambda:
-        for t in range(T-1, -1, 0):
+        for t in th.arange(v_t.shape[0] - 1, -1, -1, device=v_t.device):
             g = G[t] = r_t[t] + gamma_t[t] * (inv_lambda * v_t[t] + lambda_ * g)
     else:
-        for t in range(T-1, -1, 0):
+        for t in th.arange(v_t.shape[0] - 1, -1, -1, device=v_t.device):
             g = G[t] = r_t[t] + gamma_t[t] * g
     return G
 
