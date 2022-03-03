@@ -72,7 +72,7 @@ def sample_continuous_beta(alpha_softplus_one: Tensor, beta_softplus_one: Tensor
     """
     conc = torch.stack([alpha_softplus_one, beta_softplus_one], -1)
     if action_01 is None:
-        with torch.no_grad(): action_01 = _Dirichlet.apply(conc).select(-1, 0)
+        with torch.no_grad(): action_01 = torch._sample_dirichlet(conc).select(-1, 0)
     ht = torch.stack([action_01, 1.0 - action_01], -1)
     a0 = conc.sum(-1)
     la1 = torch.lgamma(conc).sum(-1)
