@@ -8,6 +8,7 @@ from ..utils import batched_index
 Tensor = torch.Tensor
 from torch.distributions.utils import _standard_normal
 from torch.nn.functional import binary_cross_entropy_with_logits
+from torch.distributions.dirichlet import _Dirichlet
 
 """Jit-compatible action sampling"""
 def sample_discrete(logits: Tensor, action: Optional[Tensor] = None):
@@ -59,6 +60,28 @@ def sample_continuous(mean: Tensor, log_std: Tensor, action: Optional[Tensor] = 
     log_prob = (-((action - mean) ** 2) / (2 * var) - log_std - math.log(math.sqrt(2 * math.pi))).sum(-1)
     entropy = (0.5 + 0.5 * math.log(2 * math.pi) + log_std).sum(-1)
     return action, log_prob, entropy, log_prob.exp()
+
+
+def sample_continuous_beta(alpha_beta_softplus_one: Tensor, action_01: Optional[Tensor] = None):
+    """Sample continuous action using beta distribution parameterized by alpha and beta vectors
+
+    Args:
+        alpha_beta_softplus_one: Alpha and beta vectors, concatenated, after softplus and adding one
+        action_01: Unscaled action
+    """
+    if action_01 is None:
+        with torch.no_grad: action_01 = _Dirichlet.apply(alpha_beta_softplus_one).select(-1, 0)
+    ht = torch.stack([action_01, 1.0 - action_01], -1)
+    a0 = alpha_beta_softplus_one.sum(-1)
+    la1 = torch.lgamma(alpha_beta_softplus_one).sum(-1)
+    # https://github.com/pytorch/pytorch/blob/9ad0578c590f2b698b52813243e39af94282a472/torch/distributions/beta.py#L63
+    # https://github.com/pytorch/pytorch/blob/905efa82ff698f252a44fac83efaa72fe5678f52/torch/distributions/dirichlet.py#L67
+    lp = (torch.log(ht) * (alpha_beta_softplus_one - 1)).sum(-1) + torch.lgamma(a0) - la1
+    # https://github.com/pytorch/pytorch/blob/905efa82ff698f252a44fac83efaa72fe5678f52/torch/distributions/dirichlet.py#L84
+    k = alpha_beta_softplus_one.size(-1)
+    ent = (la1 - torch.lgamma(a0) - (k - a0) * torch.digamma(a0) -
+                ((alpha_beta_softplus_one - 1.0) * torch.digamma(alpha_beta_softplus_one)).sum(-1))
+    return action_01, lp, ent, lp.exp()
 
 
 def sample_sac_continuous(mean: Tensor, log_std: Tensor, action_scale: Tensor,
