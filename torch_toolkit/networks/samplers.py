@@ -62,26 +62,28 @@ def sample_continuous(mean: Tensor, log_std: Tensor, action: Optional[Tensor] = 
     return action, log_prob, entropy, log_prob.exp()
 
 
-def sample_continuous_beta(alpha_beta_softplus_one: Tensor, action_01: Optional[Tensor] = None):
+def sample_continuous_beta(alpha_softplus_one: Tensor, beta_softplus_one: Tensor, action_01: Optional[Tensor] = None):
     """Sample continuous action using beta distribution parameterized by alpha and beta vectors
 
     Args:
-        alpha_beta_softplus_one: Alpha and beta vectors, concatenated, after softplus and adding one
+        alpha_softplus_one: Alpha vector, after softplus and +1
+        beta_softplus_one: Beta vector, after softplus and +1
         action_01: Unscaled action
     """
+    conc = torch.stack([alpha_softplus_one, beta_softplus_one], -1)
     if action_01 is None:
-        with torch.no_grad(): action_01 = _Dirichlet.apply(alpha_beta_softplus_one).select(-1, 0)
+        with torch.no_grad(): action_01 = _Dirichlet.apply(conc).select(-1, 0)
     ht = torch.stack([action_01, 1.0 - action_01], -1)
-    a0 = alpha_beta_softplus_one.sum(-1)
-    la1 = torch.lgamma(alpha_beta_softplus_one).sum(-1)
+    a0 = conc.sum(-1)
+    la1 = torch.lgamma(conc).sum(-1)
     # https://github.com/pytorch/pytorch/blob/9ad0578c590f2b698b52813243e39af94282a472/torch/distributions/beta.py#L63
     # https://github.com/pytorch/pytorch/blob/905efa82ff698f252a44fac83efaa72fe5678f52/torch/distributions/dirichlet.py#L67
-    lp = (torch.log(ht) * (alpha_beta_softplus_one - 1)).sum(-1) + torch.lgamma(a0) - la1
+    lp = (torch.log(ht) * (conc - 1)).sum(-1) + torch.lgamma(a0) - la1
     # https://github.com/pytorch/pytorch/blob/905efa82ff698f252a44fac83efaa72fe5678f52/torch/distributions/dirichlet.py#L84
-    k = alpha_beta_softplus_one.size(-1)
+    k = conc.size(-1)
     ent = (la1 - torch.lgamma(a0) - (k - a0) * torch.digamma(a0) -
-                ((alpha_beta_softplus_one - 1.0) * torch.digamma(alpha_beta_softplus_one)).sum(-1))
-    return action_01, lp, ent, lp.exp()
+                ((conc - 1.0) * torch.digamma(conc)).sum(-1))
+    return action_01, lp.sum(-1), ent.sum(-1), lp.exp()
 
 
 def sample_sac_continuous(mean: Tensor, log_std: Tensor, action_scale: Tensor,
