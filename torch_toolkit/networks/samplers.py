@@ -1,4 +1,4 @@
-__all__ = ['sample_discrete', 'sample_discrete_option', 'sample_continuous', 'sample_sac_continuous', 'sample_bernoulli']
+__all__ = ['sample_discrete', 'sample_discrete_option', 'sample_continuous', 'sample_sac_continuous', 'sample_bernoulli', 'sample_continuous_beta']
 
 import math
 from typing import Optional
@@ -70,7 +70,7 @@ def sample_continuous_beta(alpha_beta_softplus_one: Tensor, action_01: Optional[
         action_01: Unscaled action
     """
     if action_01 is None:
-        with torch.no_grad: action_01 = _Dirichlet.apply(alpha_beta_softplus_one).select(-1, 0)
+        with torch.no_grad(): action_01 = _Dirichlet.apply(alpha_beta_softplus_one).select(-1, 0)
     ht = torch.stack([action_01, 1.0 - action_01], -1)
     a0 = alpha_beta_softplus_one.sum(-1)
     la1 = torch.lgamma(alpha_beta_softplus_one).sum(-1)
