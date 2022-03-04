@@ -3,33 +3,38 @@ __all__ = ['RecordVideoWithText']
 import distutils.version
 import distutils.spawn
 import os
-from typing import Callable
+from typing import Callable, Optional, Sequence
 
 import numpy as np
 from gym import logger, error
 from gym.wrappers import RecordVideo
 from gym.wrappers.monitoring.video_recorder import VideoRecorder, ImageEncoder
-from PIL import Image, ImageDraw, ImageFont
-from pathlib import Path
-try:
-    fnt = ImageFont.truetype((Path(__file__).resolve().parent / 'Inconsolata-Bold.ttf').as_posix(), 10)  # Try to default to a monospace font
-except:
-    fnt = ImageFont.load_default()
+import cv2
+
 
 class RecordVideoWithText(RecordVideo):
+    """Record video, with option to save text at bottom of frame.
+
+    Also compatible with my multi-render environments and can change fps of output video"""
     def __init__(
         self,
         env,
         video_folder: str,
         episode_trigger: Callable[[int], bool] = None,
         step_trigger: Callable[[int], bool] = None,
+        # n_episode_trigger: Callable[[int], bool] = None,
         video_length: int = 0,
         name_prefix: str = "rl-video",
-        text_space: int = 0
+        text_space: int = 0,
+        fps: Optional[int] = None,
+        render_idx: Optional[Sequence[int]] = None,
     ):
         super().__init__(env, video_folder, episode_trigger, step_trigger, video_length, name_prefix)
         self.text_space = text_space
         self.text_to_render = ''
+        self.render_idx = render_idx
+        self.render_idx_size = 1 if render_idx is None else len(render_idx)
+        if fps is not None: self.unwrapped.metadata["video.frames_per_second"] = fps
 
     def start_video_recorder(self):
         self.close_video_recorder()
@@ -43,7 +48,8 @@ class RecordVideoWithText(RecordVideo):
             env=self.env,
             base_path=base_path,
             metadata={"step_id": self.step_id, "episode_id": self.episode_id},
-            text_space=self.text_space
+            text_space=self.text_space,
+            render_idx=self.render_idx
         )
 
         self.video_recorder.capture_frame()
@@ -53,16 +59,16 @@ class RecordVideoWithText(RecordVideo):
     def step(self, action):
         observations, rewards, dones, infos = super(RecordVideo, self).step(action)
         # increment steps and episodes
-        # self.step_id += 1
+        self.step_id += 1
         if not self.is_vector_env:
-            self.step_id += 1
             if dones:
                 self.episode_id += 1
         else:
-            self.step_id += self.num_envs
             if dones[0]: self.episode_id += 1
-        # elif dones[0]:
-        #     self.episode_id += 1
+            # if self.render_idx_size == 1:
+            #     if dones[0]: self.episode_id += 1  # Only logging 1 environment
+            # else:
+            #     self.episode_id += dones[self.render_idx].sum()  # Logging dones from all these
 
         if self.recording:
             self.video_recorder.capture_frame(self.text_to_render)
@@ -74,8 +80,10 @@ class RecordVideoWithText(RecordVideo):
                 if not self.is_vector_env:
                     if dones:
                         self.close_video_recorder()
-                elif dones[0]:
-                    self.close_video_recorder()
+                else:
+                    if dones[0]: self.close_video_recorder()
+                    # if self.render_idx_size == 1 and dones[0]:
+                    #     self.close_video_recorder()
 
         elif self._video_enabled():
             self.start_video_recorder()
@@ -87,9 +95,10 @@ class RecordVideoWithText(RecordVideo):
 
 
 class VideoRecorderWithText(VideoRecorder):
-    def __init__(self, env, path=None, metadata=None, enabled=True, base_path=None, text_space: int = 40):
+    def __init__(self, env, path=None, metadata=None, enabled=True, base_path=None, text_space: int = 40, render_idx: Optional[Sequence[int]] = None):
         super().__init__(env, path, metadata, enabled, base_path)
         self.text_space = text_space
+        self.render_idx = render_idx
 
     def capture_frame(self, text: str = ''):
         """Render the given `env` and add the resulting frame to the video."""
@@ -103,7 +112,7 @@ class VideoRecorderWithText(VideoRecorder):
         logger.debug("Capturing video frame: path=%s", self.path)
 
         render_mode = "ansi" if self.ansi_mode else "rgb_array"
-        frame = self.env.render(mode=render_mode)
+        frame = self.env.render(mode=render_mode) if self.render_idx is None else self.env.unwrapped.render(mode=render_mode, idx=self.render_idx)
 
         if frame is None:
             if self._async:
@@ -171,14 +180,13 @@ class TextImageEncoder(ImageEncoder):
             )
 
         if text and self.text_space:  # Draw text if any is provided and we have space
-            frame = Image.fromarray(frame)  # Convert to Pillow image
-            dr = ImageDraw.Draw(frame)  # In-place drawing context
-            dr.text((10, self.text_h), text, font=fnt)  # Draw text
-
+            text_anchor = (5, self.text_h)
+            cv2.putText(frame, text, text_anchor, cv2.FONT_HERSHEY_SIMPLEX, 0.25, (255, 255, 255), 1,
+                        lineType=cv2.LINE_AA)
         try:
             if distutils.version.LooseVersion(
                 np.__version__
-            ) >= distutils.version.LooseVersion("1.9.0") or isinstance(frame, Image.Image):
+            ) >= distutils.version.LooseVersion("1.9.0"):
                 self.proc.stdin.write(frame.tobytes())
             else:
                 self.proc.stdin.write(frame.tostring())

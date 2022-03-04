@@ -1,4 +1,4 @@
-gym
-numpy
-numba
+gym>=0.21.0
+numpy<1.22
+numba>=0.55
 dm-env

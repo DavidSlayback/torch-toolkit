@@ -1,12 +1,12 @@
 __all__ = ['decorrelate_env']
 
 from collections import deque
-from gym.vector import VectorEnv
 from functools import partial
+from gym import Env
 from ..utils import th_stack, np_stack
 
 
-def decorrelate_env(env: VectorEnv, number_of_steps: int, number_of_steps_to_return: int = 1):
+def decorrelate_env(env: Env, number_of_steps: int, number_of_steps_to_return: int = 1):
     """Decorrelate environments from each other by taking random steps
 
     Args:
@@ -14,6 +14,7 @@ def decorrelate_env(env: VectorEnv, number_of_steps: int, number_of_steps_to_ret
         number_of_steps: Number of random actions to take
         number_of_steps_to_return: How many of the steps should be saved and returned for later use
     """
+    assert hasattr(env, 'num_envs')
     buffer = deque(maxlen=number_of_steps_to_return)
     env.reset()
     stack_fn = partial(th_stack, device=env.device) if hasattr(env, 'device') else np_stack

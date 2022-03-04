@@ -1,3 +1,5 @@
+__all__ = ['DictObservabilityWrapper', 'VectorObservabilityWrapper', 'DictVectorObservabilityWrapper']
+
 from typing import Optional, Sequence, Union, Dict
 
 import gym

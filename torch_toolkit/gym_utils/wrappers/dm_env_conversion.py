@@ -15,7 +15,7 @@
 # limitations under the License.
 # ============================================================================
 """bsuite adapter for OpenAI gym run-loops. Added some more general modifications"""
-
+__all__ = ['GymFromDMEnv', 'DMEnvFromGym']
 from typing import Any, Dict, Optional, Tuple, Union
 
 import dm_env

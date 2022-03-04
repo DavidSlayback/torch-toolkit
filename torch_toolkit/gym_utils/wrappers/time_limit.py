@@ -6,13 +6,13 @@ import numpy as np
 class TimeLimit(gym.Wrapper):
     def __init__(self, env, max_episode_steps=None):
         super().__init__(env)
+        self.num_envs = getattr(env, "num_envs", 1)
+        self.is_vector_env = getattr(env, "is_vector_env", False)
         if max_episode_steps is None and self.env.spec is not None:
             max_episode_steps = env.spec.max_episode_steps
         if self.env.spec is not None:
             self.env.spec.max_episode_steps = max_episode_steps
         self._max_episode_steps = max_episode_steps
-        self.num_envs = getattr(env, "num_envs", 1)
-        self.is_vector_env = getattr(env, "is_vector_env", False)
         self._elapsed_steps = np.zeros(self.num_envs)
 
     def step(self, action):
