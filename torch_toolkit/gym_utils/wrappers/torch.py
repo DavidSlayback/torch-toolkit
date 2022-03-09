@@ -99,7 +99,7 @@ class RecordEpisodeStatisticsTorch(gym.Wrapper):
             infos = [infos]
             dones = [dones]
         d_idx = th.nonzero(dones).squeeze()
-        nd = d_idx.size(0)
+        nd = d_idx.numel()
         infos = list(infos)
         if nd:
             # Bring these parts over to cpu just once
