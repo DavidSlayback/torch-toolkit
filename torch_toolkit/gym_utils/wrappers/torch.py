@@ -65,6 +65,7 @@ class RecordEpisodeStatisticsTorch(gym.Wrapper):
     def __init__(self, env, discount: float, deque_size: int = 100):
         super(RecordEpisodeStatisticsTorch, self).__init__(env)
         self.num_envs = getattr(env, "num_envs", 1)
+        self.is_brax_env = hasattr(self.env.unwrapped, '_state')
         self.is_vector_env = getattr(env, "is_vector_env", self.num_envs > 1)
         self.device = getattr(env, "device", 'cpu')
         self.t0 = time.perf_counter()
@@ -98,23 +99,30 @@ class RecordEpisodeStatisticsTorch(gym.Wrapper):
         if not self.is_vector_env:
             infos = [infos]
             dones = [dones]
-        d_idx = th.nonzero(dones).squeeze()
+        d_idx = th.nonzero(dones).squeeze(-1)
         nd = d_idx.numel()
-        infos = list(infos)
+        if not self.is_brax_env: infos = list(infos)
         if nd:
             # Bring these parts over to cpu just once
             rets = to_np(self.episode_returns[d_idx])
             d_rets = to_np(self.episode_returns[d_idx])
             lens = to_np(self.episode_returns[d_idx])
-            for i, j in enumerate(d_idx):
-                infos[j] = infos[j].copy()
-                episode_info = {
-                    "r": rets[i],
-                    "l": lens[i],
-                    "dr": d_rets[i],
-                    "t": round(time.perf_counter() - self.t0, 6),
-                }
-                infos[j]["episode"] = episode_info
+            # Brax environments: 1 info, dict of tensors
+            if self.is_brax_env:
+                infos['episode_info'] = {'r': self.episode_returns, 'l': self.episode_lengths,
+                                         'dr': self.discounted_episode_returns,
+                                         't': round(time.perf_counter() - self.t0, 6)}
+            # Otherwise, list of infos
+            else:
+                for i, j in enumerate(d_idx):
+                    infos[j] = infos[j].copy()
+                    episode_info = {
+                        "r": rets[i],
+                        "l": lens[i],
+                        "dr": d_rets[i],
+                        "t": round(time.perf_counter() - self.t0, 6),
+                    }
+                    infos[j]["episode"] = episode_info
             self.return_queue.extend(rets)
             self.discounted_return_queue.extend(d_rets)
             self.length_queue.extend(lens)
