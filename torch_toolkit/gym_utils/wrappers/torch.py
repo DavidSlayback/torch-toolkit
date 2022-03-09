@@ -105,8 +105,8 @@ class RecordEpisodeStatisticsTorch(gym.Wrapper):
         if nd:
             # Bring these parts over to cpu just once
             rets = to_np(self.episode_returns[d_idx])
-            d_rets = to_np(self.episode_returns[d_idx])
-            lens = to_np(self.episode_returns[d_idx])
+            d_rets = to_np(self.discounted_episode_returns[d_idx])
+            lens = to_np(self.episode_lengths[d_idx])
             # Brax environments: 1 info, dict of tensors
             if self.is_brax_env:
                 infos['episode_info'] = {'r': self.episode_returns, 'l': self.episode_lengths,
