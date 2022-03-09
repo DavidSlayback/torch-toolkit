@@ -7,11 +7,11 @@ import gym
 
 
 class RecordEpisodeStatistics(gym.Wrapper):
-    """Modification of original gym EpiscodeStatistics to consider discounted return"""
+    """Modification of original gym EpisodeStatistics to consider discounted return"""
     def __init__(self, env, discount: float, deque_size: int = 100):
         super(RecordEpisodeStatistics, self).__init__(env)
         self.num_envs = getattr(env, "num_envs", 1)
-        self.is_vector_env = getattr(env, "is_vector_env", False)
+        self.is_vector_env = getattr(env, "is_vector_env", self.num_envs > 1)
         self.t0 = time.perf_counter()
         self.episode_count = 0
         self.episode_returns = None

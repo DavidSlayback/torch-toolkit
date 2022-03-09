@@ -1,5 +1,6 @@
-__all__ = ['PyTorchWrapper', 'PyTorchVectorWrapper']
+__all__ = ['PyTorchWrapper', 'PyTorchVectorWrapper', 'RecordEpisodeStatisticsTorch']
 
+from collections import deque
 from typing import Union, Dict, Tuple
 import gym
 from gym import Env, Wrapper
@@ -56,3 +57,75 @@ class PyTorchVectorWrapper(VectorEnvWrapper):
         o, d = to_th((o,d))
         reward = to_th(r, self.device, th.float32)  # Override with float32
         return o, reward, d, info
+
+import time
+
+class RecordEpisodeStatisticsTorch(gym.Wrapper):
+    """Discounted return as well. Environment backed by tensors. Stat queues still in numpy for compatibility"""
+    def __init__(self, env, discount: float, deque_size: int = 100):
+        super(RecordEpisodeStatisticsTorch, self).__init__(env)
+        self.num_envs = getattr(env, "num_envs", 1)
+        self.is_vector_env = getattr(env, "is_vector_env", self.num_envs > 1)
+        self.device = getattr(env, "device", 'cpu')
+        self.t0 = time.perf_counter()
+        self.episode_count = 0
+        self.episode_returns = th.zeros(self.num_envs, dtype=th.float64, device=self.device)
+        self.discounted_episode_returns = th.zeros(self.num_envs, dtype=th.float64, device=self.device)
+        self.episode_lengths = th.zeros(self.num_envs, dtype=th.int32, device=self.device)
+        self._cur_discount = th.ones(self.num_envs, dtype=th.float64, device=self.device)
+        self.discount = discount or getattr(env, "discount", 0) or 1.
+        # These are still numpy
+        self.return_queue = deque(maxlen=deque_size)
+        self.discounted_return_queue = deque(maxlen=deque_size)
+        self.length_queue = deque(maxlen=deque_size)
+
+    def reset(self, **kwargs):
+        observations = super().reset(**kwargs)
+        self.episode_returns[:] = 0
+        self.episode_lengths[:] = 0
+        self.discounted_episode_returns[:] = 0
+        self._cur_discount[:] = 1
+        return observations
+
+    def step(self, action):
+        observations, rewards, dones, infos = super().step(
+            action
+        )
+        self.episode_returns += rewards
+        self.discounted_episode_returns += rewards * self._cur_discount
+        self.episode_lengths += 1
+        self._cur_discount *= self.discount
+        if not self.is_vector_env:
+            infos = [infos]
+            dones = [dones]
+        d_idx = th.nonzero(dones).squeeze()
+        nd = d_idx.size(0)
+        infos = list(infos)
+        if nd:
+            # Bring these parts over to cpu just once
+            rets = to_np(self.episode_returns[d_idx])
+            d_rets = to_np(self.episode_returns[d_idx])
+            lens = to_np(self.episode_returns[d_idx])
+            for i, j in enumerate(d_idx):
+                infos[j] = infos[j].copy()
+                episode_info = {
+                    "r": rets[i],
+                    "l": lens[i],
+                    "dr": d_rets[i],
+                    "t": round(time.perf_counter() - self.t0, 6),
+                }
+                infos[j]["episode"] = episode_info
+            self.return_queue.extend(rets)
+            self.discounted_return_queue.extend(d_rets)
+            self.length_queue.extend(lens)
+            self.episode_count += nd
+            self.episode_returns[d_idx] = 0
+            self.episode_lengths[d_idx] = 0
+            self.discounted_episode_returns[d_idx] = 0
+            self._cur_discount[d_idx] = 1.
+        return (
+            observations,
+            rewards,
+            dones if self.is_vector_env else dones[0],
+            infos if self.is_vector_env else infos[0],
+        )
