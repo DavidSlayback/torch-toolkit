@@ -1,8 +1,5 @@
 __all__ = ['extract']
 
-import ctypes
-import inspect
-
 """See https://andyljones.com/posts/post-mortem-plotting.html for use"""
 
 def extract(source=None):

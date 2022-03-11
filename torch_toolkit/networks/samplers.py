@@ -8,7 +8,6 @@ from ..utils import batched_index
 Tensor = torch.Tensor
 from torch.distributions.utils import _standard_normal
 from torch.nn.functional import binary_cross_entropy_with_logits
-from torch.distributions.dirichlet import _Dirichlet
 
 """Jit-compatible action sampling"""
 def sample_discrete(logits: Tensor, action: Optional[Tensor] = None):

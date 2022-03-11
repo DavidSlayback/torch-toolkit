@@ -1,6 +1,6 @@
 __all__ = ['th_device', 'to_th', 'to_np', 'th_stack', 'np_stack', 'torch_type_to_np', 'np_type_to_torch']
 
-from typing import Union, Iterable, Dict, Tuple, Any, Optional, Sequence, List
+from typing import Union, Iterable, Dict, Tuple, Any, Optional, List
 from numbers import Number
 from dataclasses import is_dataclass, astuple
 import torch as th

@@ -1,10 +1,7 @@
 __all__ = ['set_grad_enabled']
 
-import sys
 import torch
-import functools
-import inspect
-from typing import Any, Callable, TypeVar, cast
+from typing import Any
 
 class set_grad_enabled(torch.autograd.grad_mode._DecoratorContextManager):
     r"""Context-manager that disabled gradient calculation.

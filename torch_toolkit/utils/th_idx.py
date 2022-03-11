@@ -1,6 +1,6 @@
 __all__ = ['th_ravel_multi_index', 'th_unravel_index', 'batched_index', 'infer_leading_dims']
 
-from typing import Tuple, Optional
+from typing import Tuple
 import torch as th
 Tensor = th.Tensor
 

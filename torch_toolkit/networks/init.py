@@ -1,6 +1,5 @@
 __all__ = ['layer_init', 'ORTHOGONAL_INIT_VALUES', 'ORTHOGONAL_INIT_VALUES_TORCH', 'pi_init', 'v_init', 'beta_init', 'rnn_init', 'module_init']
 
-from collections import Iterable
 from typing import Dict
 
 import torch.nn.init as init

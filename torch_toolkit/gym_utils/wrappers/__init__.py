@@ -1,8 +1,8 @@
-from .torch_space import *
+# Manual import of wrappers with numba or dm_env dependencies
+
+from .stats import *
+from .time_limit import *
 from .torch import *
 from .video_recorder import *
-from .time_limit import *
-from .numba_wrappers import *
-from .dm_env_conversion import *
+from .torch_space import *
 from .partial_observability import *
-from .stats import *

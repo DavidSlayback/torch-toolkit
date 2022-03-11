@@ -1,6 +1,6 @@
 __all__ = ['MLP']
 
-from typing import Sequence, Callable
+from typing import Sequence
 
 import torch as th
 import torch.nn as nn

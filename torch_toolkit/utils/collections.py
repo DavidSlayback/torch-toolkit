@@ -1,7 +1,7 @@
 __all__ = ['ArrayDataclassMixin', 'ArrayDict', 'mapping', 'starmapping',
            'arrdict_to_dicts', 'arrdict_cat', 'arrdict_stack', 'arrdict_clone', 'arrdict_from_dicts']
 
-from typing import NamedTuple, Dict, Union, Optional
+from typing import Union, Optional
 from functools import wraps
 
 import torch as th

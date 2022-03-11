@@ -4,7 +4,7 @@ from typing import Type, Iterable, Callable, Optional
 import math
 
 
-def str_to_iterable(string: Optional[str], return_type: Type = int, return_fn: Callable[[...], Iterable] = list) -> Optional[Iterable]:
+def str_to_iterable(string: Optional[str], return_type: Type = int, return_fn: Callable[..., Iterable] = list) -> Optional[Iterable]:
     """Convert argument string into an interable
 
     Args:
