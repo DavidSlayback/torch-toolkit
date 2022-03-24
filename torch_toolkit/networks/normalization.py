@@ -24,6 +24,7 @@ class ObservationNormalizationModule(nn.Module):
         return self.normalize(x)
 
     @torch.jit.export
+    @torch.no_grad()
     def update_normalization(self, x: Tensor) -> None:
         """Update mean, variance, and steps"""
         xv = x.view(-1, self.n_obs)
