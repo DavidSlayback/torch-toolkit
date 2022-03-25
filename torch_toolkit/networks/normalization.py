@@ -28,13 +28,13 @@ class ObservationNormalizationModule(nn.Module):
     def update_normalization(self, x: Tensor) -> None:
         """Update mean, variance, and steps"""
         xv = x.view(-1, self.n_obs)
-        self.num_steps += xv.shape[0]
+        self.num_steps.add_(xv.shape[0])
         input_to_old_mean = xv - self.running_mean
         mean_diff = torch.sum(input_to_old_mean / self.num_steps, dim=0)
-        self.running_mean = self.running_mean + mean_diff
+        self.running_meana.add_(mean_diff)
         input_to_new_mean = xv - self.running_mean
         var_diff = torch.sum(input_to_new_mean * input_to_old_mean, dim=0)
-        self.running_variance = self.running_variance + var_diff
+        self.running_variance.add_(var_diff)
 
     @torch.jit.export
     def normalize(self, x: Tensor) -> Tensor:
