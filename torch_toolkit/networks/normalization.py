@@ -1,8 +1,83 @@
-__all__ = ['ObservationNormalizationModule']
+__all__ = ['ObservationNormalizationModule', 'RMSNorm']
 
+import numbers
+from typing import Tuple, Union, List, Optional
 import torch
 import torch.nn as nn
 Tensor = torch.Tensor
+
+_shape_t = Union[int, List[int], torch.Size]
+
+
+class RMSNorm(nn.Module):
+    """Root-mean-squared normalization layer
+
+    An alternative to LayerNorm proposed here: https://openreview.net/pdf?id=SygkZ3MTJE
+    Instead of recentering and rescaling inputs, just rescale. Faster with comparalbe or better performance
+
+    This layer uses statistics computed from input data in both training and
+    evaluation modes.
+
+    Args:
+        normalized_shape (int or list or torch.Size): input shape from an expected input
+            of size
+
+            .. math::
+                [* \times \text{normalized\_shape}[0] \times \text{normalized\_shape}[1]
+                    \times \ldots \times \text{normalized\_shape}[-1]]
+
+            If a single integer is used, it is treated as a singleton list, and this module will
+            normalize over the last dimension which is expected to be of that specific size.
+        p: For pRMSNorm. First p% of inputs are used to compute statistics instead of all inputs
+        eps: a value added to the denominator for numerical stability. Default: 1e-5
+        elementwise_affine: a boolean value that when set to ``True``, this module
+            has learnable per-element affine parameters initialized to ones (for weights)
+            and zeros (for biases). Default: ``True``.
+    """
+    __constants__ = ['normalized_shape', 'eps', 'elementwise_affine']
+    normalized_shape: Tuple[int, ...]
+    eps: float
+    p: float
+    elementwise_affine: bool
+
+    def __init__(self, normalized_shape: _shape_t, p: float = 1., eps: float = 1e-5, elementwise_affine: bool = True,
+                 device=None, dtype=None) -> None:
+        factory_kwargs = {'device': device, 'dtype': dtype}
+        super().__init__()
+        if isinstance(normalized_shape, numbers.Integral):
+            # mypy error: incompatible types in assignment
+            normalized_shape = (normalized_shape,)  # type: ignore[assignment]
+        self.normalized_shape = tuple(normalized_shape)  # type: ignore[arg-type]
+        self.p = p
+        self.eps = eps
+        self.elementwise_affine = elementwise_affine
+        if self.elementwise_affine: self.weight = nn.Parameter(torch.empty(self.normalized_shape, **factory_kwargs))
+        else: self.register_parameter('weight', None)
+        self.reset_parameters()
+
+    def reset_parameters(self) -> None:
+        if self.elementwise_affine: nn.init.ones_(self.weight)
+
+    def forward(self, x: Tensor):
+        """Scale by RMS norm or pRMSNorm
+
+        a_i = a_i / RMS(a) g_i
+        RMS(a) = sqrt((1/n) sum_{i=1:n}a_i^2)
+        pRMS(a) = sqrt((1/k) sum_{i=1:k}a_i^2), k=ceil(n*p)
+        """
+        if self.p >= 1.:
+            norm_x = x.norm(2, dim=-1, keepdim=True)
+            d_x = self.d
+        else:
+            partial_size = int(self.d * self.p)
+            partial_x, _ = torch.split(x, [partial_size, self.d - partial_size], dim=-1)
+
+            norm_x = partial_x.norm(2, dim=-1, keepdim=True)
+            d_x = partial_size
+        rms_x = norm_x * d_x ** (-1. / 2)
+        x_normed = x / (rms_x + self.eps)
+        return self.scale * x_normed
+
 
 class ObservationNormalizationModule(nn.Module):
     """Standalone PyTorch module to normalize observations (without gradient)

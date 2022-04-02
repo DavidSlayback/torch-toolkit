@@ -28,7 +28,6 @@ class DictObservabilityWrapper(gym.ObservationWrapper):
         else:
             self.observation_space = new_os
 
-
     def observation(self, observation):
         """Strip out some fields"""
         return {k: v for k, v in observation.items() if k in self._obs_fields}
@@ -53,7 +52,6 @@ class VectorObservabilityWrapper(gym.ObservationWrapper):
             self.single_observation_space = new_os
             self.observation_space = batch_space(self.single_observation_space, self.num_envs)
         else: self.observation_space = new_os
-
 
     def observation(self, observation):
         """Strip out some indices"""
@@ -101,7 +99,6 @@ class DictVectorObservabilityWrapper(gym.ObservationWrapper):
             self.single_observation_space = new_os
             self.observation_space = batch_space(self.single_observation_space, self.num_envs)
         else: self.observation_space = new_os
-
 
     def observation(self, observation):
         """Strip out some indices"""

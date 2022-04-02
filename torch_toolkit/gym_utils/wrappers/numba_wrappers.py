@@ -122,6 +122,7 @@ class NormalizeReward(gym.core.Wrapper):
         self.return_rms.update(self.returns)
         return rews / np.sqrt(self.return_rms.var + self.epsilon)
 
+
 class ReturnScaleWrapper(gym.core.Wrapper):
     """Return-based scaling. Track overall sigma
     sigma**2 = Var[Reward] + Var[gamma]Mean[G**2]

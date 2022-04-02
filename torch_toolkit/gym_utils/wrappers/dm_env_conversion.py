@@ -43,7 +43,10 @@ class GymFromDMEnv(gym.Env):
         reward = timestep.reward or 0.
         return timestep.observation, reward, timestep.last(), {}
 
-    def reset(self) -> np.ndarray:
+    def reset(self, *,
+              seed: Optional[int] = None,
+              return_info: bool = False,
+              options: Optional[dict] = None, ) -> np.ndarray:
         timestep = self._env.reset()
         self._last_observation = timestep.observation
         return timestep.observation
@@ -82,6 +85,7 @@ class GymFromDMEnv(gym.Env):
     def __getattr__(self, attr):
         """Delegate attribute access to underlying environment."""
         return getattr(self._env, attr)
+
 
 def spec2space(spec) -> gym.Space:
     """Convert dm_env spec to OpenAI Space.
