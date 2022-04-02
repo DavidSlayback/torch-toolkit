@@ -1,4 +1,4 @@
-__all__ = ['break_grad', 'mask_state', 'update_state_with_index', 'ResetGRU', 'LayerNormGRUCell', 'update_state_with_mask']
+__all__ = ['break_grad', 'mask_state', 'update_state_with_index', 'ResetGRU', 'NormGRUCell', 'update_state_with_mask']
 from typing import Optional, Tuple, Dict
 
 import torch as th
@@ -6,6 +6,7 @@ import torch.nn as nn
 Tensor = th.Tensor
 TensorDict = Dict[str, Tensor]
 from .init import layer_init, ORTHOGONAL_INIT_VALUES
+from .normalization import RMSNorm
 
 
 def break_grad(x: Tensor) -> Tensor:
@@ -64,30 +65,33 @@ def update_state_with_index(state: Tensor, tidx: Tensor, ntidx: Tensor, idx_stat
     return s
 
 
-class LayerNormGRUCell(nn.RNNCellBase):
-    """Layer-normalized GRU as in https://arxiv.org/pdf/1607.06450.pdf
+class NormGRUCell(nn.RNNCellBase):
+    __constants = ['n_preact']
+    n_preact: bool
+    """Layer/RMS-normalized GRU as in https://arxiv.org/pdf/1607.06450.pdf
 
     https://github.com/pytorch/pytorch/issues/12482#issuecomment-440485163"""
-    def __init__(self, input_size, hidden_size, bias=True, ln_preact=True):
+    def __init__(self, input_size, hidden_size, bias=True, n_preact=True, norm_type: str = 'rms'):
         super().__init__(input_size, hidden_size, bias, num_chunks=3)
-        self.ln_preact = ln_preact
-        if ln_preact:
-            self.ln_ih = nn.LayerNorm(3 * self.hidden_size)
-            self.ln_hh = nn.LayerNorm(3 * self.hidden_size)
-        self.ln_in = nn.LayerNorm(self.hidden_size)
-        self.ln_hn = nn.LayerNorm(self.hidden_size)
+        norm_cls = RMSNorm if norm_type == 'rms' else nn.LayerNorm
+        self.n_preact = n_preact
+        if n_preact:
+            self.n_ih = norm_cls(3 * self.hidden_size)
+            self.n_hh = norm_cls(3 * self.hidden_size)
+        self.n_in = norm_cls(self.hidden_size)
+        self.n_hn = norm_cls(self.hidden_size)
 
     def forward(self, input: Tensor, hx: Tensor):
         ih = input @ self.weight_ih.t() + self.bias_ih
         hh = hx @ self.weight_hh.t() + self.bias_hh
-        if self.ln_preact:
-            ih = self.ln_ih(ih)
-            hh = self.ln_hh(hh)
+        if self.n_preact:
+            ih = self.n_ih(ih)
+            hh = self.n_hh(hh)
 
         i_r, i_z, i_n = ih.chunk(3, dim=1)
         h_r, h_z, h_n = hh.chunk(3, dim=1)
-        i_n = self.ln_in(i_n)
-        h_n = self.ln_hn(h_n)
+        i_n = self.n_in(i_n)
+        h_n = self.n_hn(h_n)
 
         r = th.sigmoid(i_r + h_r)
         z = th.sigmoid(i_z + h_z)
@@ -108,7 +112,7 @@ class ResetGRU(nn.Module):
     """
     def __init__(self, input_size: int, hidden_size: int, learnable_state: int = 0, layer_norm: bool = False, variable_update: bool = False):
         super().__init__()
-        gru_cls = LayerNormGRUCell if layer_norm else nn.GRUCell
+        gru_cls = NormGRUCell if layer_norm else nn.GRUCell
         self.core = layer_init(gru_cls(input_size, hidden_size), ORTHOGONAL_INIT_VALUES['sigmoid'])
         init_state = th.zeros(1, hidden_size)
         if learnable_state:
