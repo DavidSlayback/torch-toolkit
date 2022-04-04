@@ -1,6 +1,6 @@
-__all__ = ['th_device', 'to_th', 'to_np', 'th_stack', 'np_stack', 'torch_type_to_np', 'np_type_to_torch']
+__all__ = ['th_device', 'to_th', 'to_np', 'th_stack', 'np_stack', 'torch_type_to_np', 'np_type_to_torch', 'buffer_func']
 
-from typing import Union, Iterable, Dict, Tuple, Any, Optional, List
+from typing import Union, Iterable, Dict, Tuple, Any, Optional, List, Callable
 from numbers import Number
 from dataclasses import is_dataclass, astuple
 import torch as th
@@ -47,6 +47,15 @@ def th_stack(buffer_: Union[List[XArray], Tuple[XArray]], device: Union[str, th.
     elif isinstance(example, Array): return to_th(np.stack(buffer_), device)
     elif isinstance(example, Number): return th.tensor(buffer_, device=device)
     else: raise ValueError("Input cannot be converted to torch stack")
+
+
+def buffer_func(buffer_: Union[Array, Tensor, Dict, Iterable, Any], fn: Callable, *args, **kwargs):
+    """Apply function to all Array/Tensor components of potentially-nested buffer"""
+    if isinstance(buffer_, (Array, Tensor)): return fn(buffer_, *args, **kwargs)
+    elif isinstance(buffer_, Iterable):
+        return type(buffer_)((buffer_func(b, fn, *args, **kwargs) for b in buffer_))
+    elif isinstance(buffer_, Dict):
+        return type(buffer_)(**{k: buffer_func(b, fn, *args, **kwargs) for k, b in buffer_.items()})
 
 
 def np_stack(buffer_: Union[Tuple[XArray], List[XArray]]) -> Array:

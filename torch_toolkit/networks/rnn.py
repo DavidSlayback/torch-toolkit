@@ -5,8 +5,7 @@ from typing import Optional, Tuple, Dict
 
 import torch as th
 import torch.nn as nn
-Tensor = th.Tensor
-TensorDict = Dict[str, Tensor]
+from ..typing import Tensor, TensorDict, OptionalTensor
 from .init import layer_init, ORTHOGONAL_INIT_VALUES
 from .normalization import RMSNorm
 
@@ -65,6 +64,23 @@ def update_state_with_index(state: Tensor, tidx: Tensor, ntidx: Tensor, idx_stat
     s[tidx] = idx_state
     s[ntidx] = state[ntidx]
     return s
+
+
+class SequentialPassState(nn.Sequential):
+    """Sequential Module that takes additional input that it ignores"""
+    def forward(self, x, state: OptionalTensor = None) -> Tuple[Tensor, OptionalTensor]:
+        for module in self:
+            x = module(x)
+        return x, state
+
+
+class SequentialStartState(nn.Sequential):
+    """Sequential module that takes additional input only relevant to first module"""
+    def forward(self, x, state: OptionalTensor = None) -> Tuple[Tensor, OptionalTensor]:
+        for i, module in enumerate(self):
+            if i == 0: x, state = module(x, state)
+            else: x = module(x)
+        return x, state
 
 
 class NormGRUCell(nn.RNNCellBase):
