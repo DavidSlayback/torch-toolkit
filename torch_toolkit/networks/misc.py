@@ -1,12 +1,12 @@
 __all__ = ['OneHotLayer', 'ReshapeLayer', 'ImageScaler']
 
-from typing import Sequence, Iterable
+from typing import Sequence, Iterable, Dict
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from ..typing import Tensor, TensorDict
+from ..typing import Tensor
 
 
 class OneHotLayer(nn.Module):
@@ -39,7 +39,7 @@ class FlattenDict(nn.Module):
     NOTE: Requires first value in dict to be [T?, B?, n] instead of [T?, B?]
     """
     @torch.no_grad()
-    def forward(self, x: TensorDict):
+    def forward(self, x: Dict[str, Tensor]):
         tensors = [v.float() for v in x.values()]  # Get tensors as float
         shape = tensors[0].shape[:-1] + (-1,)  # TODO: Don't require first key to be non-scalar
         return torch.cat([torch.reshape(v, shape) for v in tensors], -1)

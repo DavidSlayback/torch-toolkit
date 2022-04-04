@@ -18,7 +18,7 @@ def get_cat_size(obs_space: spaces.Dict) -> int:
 
 def build_intake_from_gym_env(envs: Env, **kwargs) -> Tuple[nn.Module, Union[int, Sequence[int]]]:
     """Minimal intake for a gym observation. Return intake and its output size"""
-    space = getattr(envs, 'single_observation_space', 'observation_space')  # Try to get single (vector env), otherwise full
+    space = getattr(envs, 'single_observation_space', envs.observation_space)  # Try to get single (vector env), otherwise full
     if isinstance(space, spaces.Discrete):
         return build_intake_from_discrete(space.n, **kwargs)
     elif isinstance(space, spaces.Box):
@@ -57,6 +57,6 @@ def build_intake_from_discrete_box(space: spaces.Box, **kwargs) -> Tuple[nn.Modu
 def build_intake_from_dict(space: spaces.Dict, **kwargs) -> Tuple[nn.Module, int]:
     """Dict space (e.g., dm_control). Requires non-nested dict"""
     from ..utils import to_th, buffer_func
-    itk = FlattenDict()
-    example = itk(buffer_func(to_th(itk(space.sample())), torch.unsqueeze, 0))  # Apply to example output to get size
+    itk = torch.jit.script(FlattenDict())
+    example = itk(buffer_func(to_th(space.sample()), torch.unsqueeze, 0))  # Apply to example output to get size
     return itk, example.shape[-1]

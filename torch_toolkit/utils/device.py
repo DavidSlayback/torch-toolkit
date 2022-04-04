@@ -32,10 +32,10 @@ def to_np(buffer_: Union[Array, Tensor, Dict, Iterable, Any]):
     """Move to numpy array(s)."""
     if isinstance(buffer_, Array): return buffer_
     elif isinstance(buffer_, Tensor): return buffer_.cpu().numpy()
-    elif isinstance(buffer_, Iterable):
-        return type(buffer_)((to_np(b) for b in buffer_))
     elif isinstance(buffer_, Dict):
         return type(buffer_)(**{k: to_np(v) for k, v in buffer_.items()})
+    elif isinstance(buffer_, Iterable):
+        return type(buffer_)((to_np(b) for b in buffer_))
     elif is_dataclass(buffer_): return type(buffer_)((to_np(b) for b in astuple(buffer_)))
     else: return buffer_
 
@@ -52,10 +52,10 @@ def th_stack(buffer_: Union[List[XArray], Tuple[XArray]], device: Union[str, th.
 def buffer_func(buffer_: Union[Array, Tensor, Dict, Iterable, Any], fn: Callable, *args, **kwargs):
     """Apply function to all Array/Tensor components of potentially-nested buffer"""
     if isinstance(buffer_, (Array, Tensor)): return fn(buffer_, *args, **kwargs)
-    elif isinstance(buffer_, Iterable):
-        return type(buffer_)((buffer_func(b, fn, *args, **kwargs) for b in buffer_))
     elif isinstance(buffer_, Dict):
         return type(buffer_)(**{k: buffer_func(b, fn, *args, **kwargs) for k, b in buffer_.items()})
+    elif isinstance(buffer_, Iterable):
+        return type(buffer_)((buffer_func(b, fn, *args, **kwargs) for b in buffer_))
 
 
 def np_stack(buffer_: Union[Tuple[XArray], List[XArray]]) -> Array:
