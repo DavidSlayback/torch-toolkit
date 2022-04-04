@@ -3,6 +3,7 @@
 __all__ = ['break_grad', 'mask_state', 'update_state_with_index', 'ResetGRU', 'NormGRUCell', 'update_state_with_mask']
 from typing import Optional, Tuple, Dict
 
+import torch
 import torch as th
 import torch.nn as nn
 from ..typing import Tensor, TensorDict, OptionalTensor
@@ -68,7 +69,7 @@ def update_state_with_index(state: Tensor, tidx: Tensor, ntidx: Tensor, idx_stat
 
 class SequentialPassState(nn.Sequential):
     """Sequential Module that takes additional input that it ignores"""
-    def forward(self, x, state: OptionalTensor = None) -> Tuple[Tensor, OptionalTensor]:
+    def forward(self, x, state: Optional[Tensor] = None) -> Tuple[Tensor, Optional[Tensor]]:
         for module in self:
             x = module(x)
         return x, state
@@ -76,11 +77,48 @@ class SequentialPassState(nn.Sequential):
 
 class SequentialStartState(nn.Sequential):
     """Sequential module that takes additional input only relevant to first module"""
-    def forward(self, x, state: OptionalTensor = None) -> Tuple[Tensor, OptionalTensor]:
+    def forward(self, x, state: OptionalTensor = None) -> Tuple[Tensor, Optional[Tensor]]:
         for i, module in enumerate(self):
             if i == 0: x, state = module(x, state)
             else: x = module(x)
         return x, state
+
+
+class ResetCore(nn.Module):
+    """Clone of haiku's hk.ResetCore with more features
+
+    Reset incoming state based on "should_reset" signal
+
+    Args:
+        rnn: RNN module
+        learning_dim: If 0, typical zero-reset. If 1, single learnable state. If >1, multiple learnable states (i.e., per-option)
+    """
+    __constants__ = ['ldim', 'hidden_size']
+    hidden_size: int
+    ldim: int
+
+    def __init__(self, rnn: nn.Module, learning_dim: int):
+        super().__init__()
+        assert learning_dim >= 0
+        self.rnn = rnn
+        self.hidden_size = getattr(rnn, 'hidden_size', 0)  # Recurrent modules have hidden size, others do not
+        if not self.hidden_size: learning_dim = 0
+        self.ldim = learning_dim
+        self._initial_state = nn.Parameter(torch.zeros(self.ldim, self.hidden_size), requires_grad=bool(learning_dim))
+
+    def forward(self, state, should_reset, reset_indices: Optional[torch.LongTensor] = None):
+        """"""
+        if self.ldim <= 1: return mask_state(state, should_reset, self._initial_state)
+        else:
+            if reset_indices is None: reset_indices = torch.zeros_like(should_reset, dtype=torch.int64)
+            return mask_state(state, should_reset, self.initial_state_index(reset_indices))
+
+    def initial_state(self, b: int = 1):
+        return self._initial_state.expand(b, -1)
+
+    def initial_state_index(self, indices: torch.LongTensor):
+        return self._initial_state[indices]
+
 
 
 class NormGRUCell(nn.RNNCellBase):
