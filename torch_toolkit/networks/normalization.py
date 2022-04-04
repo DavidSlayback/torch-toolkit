@@ -4,7 +4,7 @@ import numbers
 from typing import Tuple, Union, List, Optional
 import torch
 import torch.nn as nn
-Tensor = torch.Tensor
+from ..typing import Tensor
 
 _shape_t = Union[int, List[int], torch.Size]
 

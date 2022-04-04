@@ -3,13 +3,12 @@ __all__ = ['Tanh', 'Sigmoid', 'LogSigmoid']
 import torch as th
 import torch.nn as nn
 import torch.nn.functional as F
-Tensor = th.Tensor
-
+from ..typing import Tensor
 # In practice, I've found that in-place activations give a marked speedup
-
-
 class Tanh(nn.Module):
     """Same as nn.Tanh, with option to perform inplace"""
+    __constants__ = ['inplace']
+    inplace: bool
     def __init__(self, inplace: bool = False):
         super().__init__()
         self.inplace = inplace
@@ -25,6 +24,8 @@ class Tanh(nn.Module):
 
 class Sigmoid(nn.Module):
     """Same as nn.Sigmoid, with option to perform inplace"""
+    __constants__ = ['inplace']
+    inplace: bool
     def __init__(self, inplace: bool = False):
         super().__init__()
         self.inplace = inplace
@@ -39,6 +40,8 @@ class Sigmoid(nn.Module):
 
 
 class LogSigmoid(nn.Module):
+    __constants__ = ['inplace']
+    inplace: bool
     """Same as nn.LogSigmoid, with option to perform inplace. May not be benefiting from stability, no logsigmoid_"""
     def __init__(self, inplace: bool = False):
         super().__init__()

@@ -2,7 +2,7 @@ __all__ = ['generalized_advantage_estimation', 'lambda_returns']
 
 from typing import Tuple
 import torch as th
-Tensor = th.Tensor
+from ...typing import Tensor
 
 
 @th.jit.script

@@ -5,8 +5,7 @@ from functools import partial
 from typing import Tuple, Union, Optional, Sequence
 
 import torch as th
-
-Tensor = th.Tensor
+from ..typing import Tensor
 import torch.nn as nn
 import numpy as np
 

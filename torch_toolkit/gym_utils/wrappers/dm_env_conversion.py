@@ -23,9 +23,10 @@ from dm_env import specs
 import gym
 from gym import spaces
 import numpy as np
+from ...typing import XArray
 
 # OpenAI gym step format = obs, reward, is_finished, other_info
-_GymTimestep = Tuple[np.ndarray, float, bool, Dict[str, Any]]
+_GymTimestep = Tuple[XArray, float, bool, Dict[str, Any]]
 
 
 class GymFromDMEnv(gym.Env):
@@ -37,7 +38,7 @@ class GymFromDMEnv(gym.Env):
         self._last_observation = None
         self.viewer = None
 
-    def step(self, action: Union[float, int, np.ndarray]) -> _GymTimestep:
+    def step(self, action: Union[float, int, XArray]) -> _GymTimestep:
         timestep = self._env.step(action)
         self._last_observation = timestep.observation
         reward = timestep.reward or 0.
@@ -46,12 +47,12 @@ class GymFromDMEnv(gym.Env):
     def reset(self, *,
               seed: Optional[int] = None,
               return_info: bool = False,
-              options: Optional[dict] = None, ) -> np.ndarray:
+              options: Optional[dict] = None, ) -> XArray:
         timestep = self._env.reset()
         self._last_observation = timestep.observation
         return timestep.observation
 
-    def render(self, mode: str = 'rgb_array') -> Union[np.ndarray, bool]:
+    def render(self, mode: str = 'rgb_array') -> Union[XArray, bool]:
         if self._last_observation is None:
             raise ValueError('Environment not ready to render. Call reset() first.')
 

@@ -1,3 +1,5 @@
+"""Various recurrent layers and utilitiyes"""
+
 __all__ = ['break_grad', 'mask_state', 'update_state_with_index', 'ResetGRU', 'NormGRUCell', 'update_state_with_mask']
 from typing import Optional, Tuple, Dict
 

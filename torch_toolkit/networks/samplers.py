@@ -5,7 +5,7 @@ from typing import Optional
 
 import torch
 from ..utils import batched_index
-Tensor = torch.Tensor
+from ..typing import Tensor
 from torch.distributions.utils import _standard_normal
 from torch.nn.functional import binary_cross_entropy_with_logits
 

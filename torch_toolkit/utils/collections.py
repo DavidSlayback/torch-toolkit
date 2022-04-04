@@ -6,10 +6,8 @@ from functools import wraps
 
 import torch as th
 import numpy as np
-Tensor = th.Tensor
-Array = np.ndarray
-XArray = Union[Tensor, Array]
-MaybeXArray = Optional[XArray]
+from ..typing import Tensor, Array, XArray, OptionalXArray
+MaybeXArray = OptionalXArray
 SCREEN_WIDTH = 119
 SCREEN_HEIGHT = 200
 

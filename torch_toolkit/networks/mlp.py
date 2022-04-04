@@ -5,7 +5,7 @@ from typing import Sequence
 import torch as th
 import torch.nn as nn
 from torch.nn import Linear
-Tensor = th.Tensor
+from ..typing import Tensor
 
 from functools import partial
 from .init import layer_init, ORTHOGONAL_INIT_VALUES_TORCH

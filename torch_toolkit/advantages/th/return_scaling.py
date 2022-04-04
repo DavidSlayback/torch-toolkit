@@ -2,7 +2,7 @@ __all__ = ['ReturnScaledTD']
 
 import torch as th
 import torch
-Tensor = th.Tensor
+from ...typing import Tensor
 
 
 class ReturnScaledTD(th.nn.Module):

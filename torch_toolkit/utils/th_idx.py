@@ -2,7 +2,7 @@ __all__ = ['th_ravel_multi_index', 'th_unravel_index', 'batched_index', 'infer_l
 
 from typing import Tuple
 import torch as th
-Tensor = th.Tensor
+from ..typing import Tensor
 
 
 # See https://github.com/francois-rozet/torchist/blob/5a53be59493e1e5ccd8a9e261796edba5c40b733/torchist/__init__.py#L18
