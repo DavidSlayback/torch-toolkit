@@ -32,7 +32,8 @@ def mask_state(state_original: Tensor, reset: Tensor, initial_state: Tensor) -> 
     Returns:
         modified state
     """
-    return state_original * (1. - reset.unsqueeze(-1)) + initial_state.expand_as(state_original) * reset.unsqueeze(-1)
+    rs = reset.float().unsqueeze(-1)  # Convert to float, unqueeze batch dim
+    return state_original * (1. - rs) + initial_state.expand_as(state_original) * rs
 
 
 def update_state_with_mask(state_original: Tensor, update: Tensor, new_state: Tensor) -> Tensor:
@@ -77,7 +78,7 @@ class SequentialPassState(nn.Sequential):
 
 class SequentialStartState(nn.Sequential):
     """Sequential module that takes additional input only relevant to first module"""
-    def forward(self, x, state: OptionalTensor = None) -> Tuple[Tensor, Optional[Tensor]]:
+    def forward(self, x, state: Optional[Tensor] = None) -> Tuple[Tensor, Optional[Tensor]]:
         for i, module in enumerate(self):
             if i == 0: x, state = module(x, state)
             else: x = module(x)
@@ -94,8 +95,8 @@ class ResetCore(nn.Module):
         learning_dim: If 0, typical zero-reset. If 1, single learnable state. If >1, multiple learnable states (i.e., per-option)
     """
     __constants__ = ['ldim', 'hidden_size']
-    hidden_size: int
-    ldim: int
+    hidden_size: torch.jit.Final[int]
+    ldim: torch.jit.Final[int]
 
     def __init__(self, rnn: nn.Module, learning_dim: int):
         super().__init__()
@@ -122,8 +123,7 @@ class ResetCore(nn.Module):
 
 
 class NormGRUCell(nn.RNNCellBase):
-    __constants = ['n_preact']
-    n_preact: bool
+    n_preact: torch.jit.Final[bool]
     """Layer/RMS-normalized GRU as in https://arxiv.org/pdf/1607.06450.pdf
 
     https://github.com/pytorch/pytorch/issues/12482#issuecomment-440485163"""
