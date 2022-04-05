@@ -3,7 +3,7 @@ __all__ = ['build_action_head_from_gym_env']
 
 import collections
 import math
-from typing import Tuple, Optional, Union, Sequence, NamedTuple, Callable
+from typing import Tuple, Optional, Union, Sequence, NamedTuple, Callable, Dict, List
 from enum import IntEnum
 
 import numpy as np
@@ -364,6 +364,136 @@ class BernoulliHead(nn.Module):
         probs = torch.sigmoid(logits)
         return torch.binary_cross_entropy_with_logits(logits, probs, reduction=0)
 
+
+class CriticHead(nn.Module):
+    """Value head"""
+    def __init__(self, in_size: int, n: int):
+        super().__init__()
+        self.critic = layer_init(nn.Linear(in_size, n), 1.)
+
+
+from .activations import Tanh
+from .activation_util import maybe_inplace
+
+
+class FFCritic(nn.Module):
+    """Critic class with FF body"""
+    def __init__(self, body: nn.Module, head: nn.Module):
+        super().__init__()
+        self.body = body
+        self.head = head
+
+    def forward(self, x: Tensor):
+        return self.head(self.body(x)).squeeze(-1)
+
+
+class FFActor(nn.Module):
+    """Actor class with FF body"""
+    def __init__(self, body: nn.Module, head: nn.Module):
+        super().__init__()
+        self.body = body
+        self.head = head
+
+    def forward(self, x: Tensor):
+        return self.head(self.body(x))
+
+    @torch.jit.export
+    def sample(self, x: Tensor, idx: Optional[Tensor] = None) -> Tuple[Tensor, Tensor, Tensor]:
+        return self.head.sample(self.body(x), idx)
+
+    @torch.jit.export
+    def probs(self, logits: Tensor): return self.head.probs(logits)
+
+    @torch.jit.export
+    def log_probs(self, logits: Tensor, action: Tensor): return self.head.log_prob(logits, action)
+
+    @torch.jit.export
+    def entropy(self, logits: Tensor): return self.head.entropy(logits)
+
+
+def build_mlp(in_size: int, hidden_sizes: Sequence[int], hidden_activation: nn.Module = Tanh) -> nn.Module:
+    """Build FF MLP"""
+    act_module = maybe_inplace(hidden_activation)
+    act_std = ORTHOGONAL_INIT_VALUES_TORCH[hidden_activation]
+    sizes = [in_size,] + list(hidden_sizes)
+    layers = []
+    for s0, s1 in zip(sizes[:-1], sizes[1:]):
+        layers.extend([layer_init(nn.Linear(s0, s1), act_std), act_module()])
+    body = nn.Sequential(*layers)
+    return body
+
+
+def build_separate_ff_actor(envs: Env, in_size: int, hidden_sizes: Sequence[int], hidden_activation: nn.Module = Tanh, num_policies: int = 1, continuous_parameterization='beta'):
+    """Build feedforward actor module"""
+    head = build_action_head_from_gym_env(envs, num_policies=num_policies, continuous_parameterization=continuous_parameterization)(hidden_sizes[-1])
+    return FFActor(build_mlp(in_size, hidden_sizes, hidden_activation), head)
+
+
+def build_separate_ff_option_actor(in_size: int, hidden_sizes: Sequence[int], hidden_activation: nn.Module = Tanh, num_policies: int = 1):
+    """Discrete option policy head"""
+    head = DiscreteHead(hidden_sizes[-1], num_policies)
+    return FFActor(build_mlp(in_size, hidden_sizes, hidden_activation), head)
+
+
+def build_separate_ff_termination(in_size: int, hidden_sizes: Sequence[int], hidden_activation: nn.Module = Tanh, num_policies: int = 1):
+    """Bernoulli"""
+    head = BernoulliHead(hidden_sizes[-1], num_policies)
+    return FFActor(build_mlp(in_size, hidden_sizes, hidden_activation), head)
+
+
+def build_separate_ff_critic(in_size: int, hidden_sizes: Sequence[int], hidden_activation: nn.Module = Tanh, num_policies: int = 1):
+    """Critic (V or Q)"""
+    head = layer_init(nn.Linear(hidden_sizes[-1], num_policies), 1.)
+    return FFActor(build_mlp(in_size, hidden_sizes, hidden_activation), head)
+
+
+class ActorCritic_Unshared(nn.Module):
+    def __init__(self, actor: FFActor, critic: FFCritic):
+        super().__init__()
+        self.actor = actor
+        self.critic = critic
+
+    def forward(self, x: Tensor) -> Tuple[Tensor, Tensor]:
+        return self.actor(x), self.critic(x)
+
+    @torch.jit.export
+    def sample(self, x: Tensor) -> Tuple[Tensor, Tensor, Tensor]:
+        return self.actor.sample(x)
+
+    @torch.jit.export
+    def unroll(self, x: Tensor, action: Tensor):
+        logits = self.actor.forward(x)
+        lp = self.actor.log_probs(logits, action)
+        ent = self.actor.entropy(logits)
+        v = self.critic(x)
+        return lp, ent, v
+
+
+def build_separate_ff_actor_critic(envs: Env,
+                                   in_size: int,
+                                   hidden_sizes: Union[Sequence[int], Dict[Sequence[int]]],
+                                   hidden_activation: nn.Module = Tanh,
+                                   continuous_parameterization='beta') -> List[nn.Module]:
+    """Actor and critic networks"""
+    if isinstance(hidden_sizes, Sequence): hidden_sizes = {'actor': hidden_sizes, 'critic': hidden_sizes}
+    return [build_separate_ff_actor(envs, in_size, hidden_sizes['actor'], hidden_activation, continuous_parameterization=continuous_parameterization),
+            build_separate_ff_critic(in_size, hidden_sizes['critic'], hidden_activation)]
+
+
+def build_separate_ff_option_critic(envs: Env,
+                                   in_size: int,
+                                   hidden_sizes: Union[Sequence[int], Dict[Sequence[int]]],
+                                   hidden_activation: nn.Module = Tanh,
+                                   num_policies: int = 1,
+                                   continuous_parameterization='beta') -> List[nn.Module]:
+    """Actor, critic, termination, and option actor networks"""
+    if isinstance(hidden_sizes, Sequence): hidden_sizes = {'actor': hidden_sizes, 'critic': hidden_sizes, 'termination': hidden_sizes, 'actor_w': hidden_sizes}
+    return [
+        build_separate_ff_actor(envs, in_size, hidden_sizes['actor'], hidden_activation, num_policies, continuous_parameterization)
+        build_separate_ff_critic(in_size, hidden_sizes['critic'], hidden_activation, num_policies),
+        build_separate_ff_termination(in_size, hidden_sizes['termination'], hidden_activation, num_policies),
+        build_separate_ff_option_actor(in_size, hidden_sizes['actor_w'], hidden_activation, num_policies)
+    ]
 
 
 

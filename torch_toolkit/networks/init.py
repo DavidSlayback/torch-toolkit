@@ -5,13 +5,16 @@ from typing import Dict
 import torch.nn.init as init
 import torch.nn as nn
 from functools import partial
+from .activations import Tanh, Sigmoid
 
 ORTHOGONAL_INIT_VALUES_TORCH = {
     nn.ReLU: 2. ** 0.5,  # He et. al 2015
     nn.ELU: 1.55 ** 0.5,  # https://stats.stackexchange.com/a/320443
     nn.SELU: 3. / 4,
     nn.Tanh: 5. / 3,
+    Tanh: 5. / 3,
     nn.Sigmoid: 1.,
+    Sigmoid: 1.,
     nn.Linear: 1.,
     nn.Softmax: 1e-2
 }
