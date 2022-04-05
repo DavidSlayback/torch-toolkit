@@ -6,7 +6,7 @@ import torch
 import torch.nn as nn
 from gym import spaces, Env
 import numpy as np
-from .misc import ImageScaler, OneHotLayer, ReshapeLayer, FlattenDict
+from .misc import ImageScaler, OneHotLayer, FlattenLayer, FlattenDict
 
 # Common keys
 EMBED = 'embedding_size'
@@ -41,14 +41,14 @@ def build_intake_from_discrete(n: int, **kwargs) -> Tuple[nn.Module, int]:
 
 def build_intake_from_float_box(space: spaces.Box) -> Tuple[nn.Module, int]:
     """Basic float box (e.g. MuJoCo). Flatten to vector of size [T?, B?, n] regardless"""
-    return ReshapeLayer(space.shape), int(np.prod(space.shape))
+    return FlattenLayer(space.shape), int(np.prod(space.shape))
 
 
 def build_intake_from_discrete_box(space: spaces.Box, **kwargs) -> Tuple[nn.Module, int]:
     """Discrete Box (e.g., MiniGrid, FourRooms)"""
     embed_dim = kwargs.pop(EMBED, 0)
     n = space.high.max()  # Assume same high for all, could be smarter
-    layers = [ReshapeLayer(space.shape)]  # Reshapes to [T?, B?, n]
+    layers = [FlattenLayer(space.shape)]  # Reshapes to [T?, B?, n]
     if not embed_dim: layers.append(OneHotLayer(n))
     else: layers.append(nn.Embedding(n, embed_dim))
     return nn.Sequential(*layers), embed_dim or n

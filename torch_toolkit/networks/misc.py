@@ -1,6 +1,6 @@
-__all__ = ['OneHotLayer', 'ReshapeLayer', 'ImageScaler']
+__all__ = ['OneHotLayer', 'FlattenLayer', 'ImageScaler', 'ReshapeLayer']
 
-from typing import Sequence, Iterable, Dict
+from typing import Sequence, Iterable, Dict, Tuple
 
 import torch
 import torch.nn as nn
@@ -21,9 +21,9 @@ class OneHotLayer(nn.Module):
         return F.one_hot(x, self.n)
 
 
-class ReshapeLayer(nn.Module):
+class FlattenLayer(nn.Module):
     """Reshape inputs of [T?, B?, ...] to [T?, B?, n]"""
-    __constants__ = ['ndims_to_flatten']
+    ndims_to_flatten: torch.jit.Final[int]
     def __init__(self, shape: Sequence[int]):
         super().__init__()
         self.ndims_to_flatten = len(shape)
@@ -31,6 +31,18 @@ class ReshapeLayer(nn.Module):
     def forward(self, x: Tensor):
         shape = (x.shape[:-self.ndims_to_flatten]) + (-1,)
         return torch.reshape(x, shape)
+
+class ReshapeLayer(nn.Module):
+    """Reshape inputs of [T?, B?, in_shape] to [T?, B?, out_shape]"""
+    shape: torch.jit.Final[Tuple[int]]
+    def __init__(self, shape: Sequence[int]):
+        super(ReshapeLayer, self).__init__()
+        self.shape = tuple(shape)
+
+    def forward(self, x: Tensor):
+        """Get leading dims, reshape"""
+        return torch.reshape(x, x.shape[:-1] + self.shape)
+
 
 
 class FlattenDict(nn.Module):

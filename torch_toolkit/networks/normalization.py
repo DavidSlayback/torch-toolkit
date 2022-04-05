@@ -22,10 +22,6 @@ class RMSNorm(nn.Module):
         normalized_shape (int or list or torch.Size): input shape from an expected input
             of size
 
-            .. math::
-                [* \times \text{normalized\_shape}[0] \times \text{normalized\_shape}[1]
-                    \times \ldots \times \text{normalized\_shape}[-1]]
-
             If a single integer is used, it is treated as a singleton list, and this module will
             normalize over the last dimension which is expected to be of that specific size.
         p: For pRMSNorm. First p% of inputs are used to compute statistics instead of all inputs
