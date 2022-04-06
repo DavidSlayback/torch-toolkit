@@ -419,7 +419,7 @@ class FFActor(nn.Module):
     def entropy(self, logits: Tensor): return self.head.entropy(logits)
 
 
-def build_mlp(in_size: int, hidden_sizes: Sequence[int], hidden_activation: nn.Module = Tanh) -> nn.Module:
+def build_mlp(in_size: int, hidden_sizes: Sequence[int], hidden_activation: Callable[[], nn.Module] = Tanh) -> nn.Module:
     """Build FF MLP"""
     act_module = maybe_inplace(hidden_activation)
     act_std = ORTHOGONAL_INIT_VALUES_TORCH[hidden_activation]
@@ -431,28 +431,28 @@ def build_mlp(in_size: int, hidden_sizes: Sequence[int], hidden_activation: nn.M
     return body
 
 
-def build_separate_ff_actor(envs: Env, in_size: int, hidden_sizes: Sequence[int], hidden_activation: nn.Module = Tanh, num_policies: int = 1, continuous_parameterization='beta'):
+def build_separate_ff_actor(envs: Env, in_size: int, hidden_sizes: Sequence[int], hidden_activation: Callable[[], nn.Module] = Tanh, num_policies: int = 1, continuous_parameterization='beta'):
     """Build feedforward actor module"""
     head = build_action_head_from_gym_env(envs, num_policies=num_policies, continuous_parameterization=continuous_parameterization)(hidden_sizes[-1])
     return FFActor(build_mlp(in_size, hidden_sizes, hidden_activation), head)
 
 
-def build_separate_ff_option_actor(in_size: int, hidden_sizes: Sequence[int], hidden_activation: nn.Module = Tanh, num_policies: int = 1):
+def build_separate_ff_option_actor(in_size: int, hidden_sizes: Sequence[int], hidden_activation: Callable[[], nn.Module] = Tanh, num_policies: int = 1):
     """Discrete option policy head"""
     head = DiscreteHead(hidden_sizes[-1], num_policies)
     return FFActor(build_mlp(in_size, hidden_sizes, hidden_activation), head)
 
 
-def build_separate_ff_termination(in_size: int, hidden_sizes: Sequence[int], hidden_activation: nn.Module = Tanh, num_policies: int = 1):
+def build_separate_ff_termination(in_size: int, hidden_sizes: Sequence[int], hidden_activation: Callable[[], nn.Module] = Tanh, num_policies: int = 1):
     """Bernoulli"""
     head = BernoulliHead(hidden_sizes[-1], num_policies)
     return FFActor(build_mlp(in_size, hidden_sizes, hidden_activation), head)
 
 
-def build_separate_ff_critic(in_size: int, hidden_sizes: Sequence[int], hidden_activation: nn.Module = Tanh, num_policies: int = 1):
+def build_separate_ff_critic(in_size: int, hidden_sizes: Sequence[int], hidden_activation: Callable[[], nn.Module] = Tanh, num_policies: int = 1):
     """Critic (V or Q)"""
     head = layer_init(nn.Linear(hidden_sizes[-1], num_policies), 1.)
-    return FFActor(build_mlp(in_size, hidden_sizes, hidden_activation), head)
+    return FFCritic(build_mlp(in_size, hidden_sizes, hidden_activation), head)
 
 
 class ActorCritic_Unshared(nn.Module):
@@ -582,28 +582,28 @@ class OptionCritic_Unshared(nn.Module):
 def build_separate_ff_actor_critic(envs: Env,
                                    in_size: int,
                                    hidden_sizes: Union[Sequence[int], Dict[Sequence[int]]],
-                                   hidden_activation: nn.Module = Tanh,
-                                   continuous_parameterization='beta') -> List[nn.Module]:
+                                   hidden_activation: Callable[[], nn.Module] = Tanh,
+                                   continuous_parameterization='beta') -> Tuple[FFActor, FFCritic]:
     """Actor and critic networks"""
     if isinstance(hidden_sizes, Sequence): hidden_sizes = {PI_KEY: hidden_sizes, CRITIC_KEY: hidden_sizes}
-    return [build_separate_ff_actor(envs, in_size, hidden_sizes[PI_KEY], hidden_activation, continuous_parameterization=continuous_parameterization),
-            build_separate_ff_critic(in_size, hidden_sizes[CRITIC_KEY], hidden_activation)]
+    return (build_separate_ff_actor(envs, in_size, hidden_sizes[PI_KEY], hidden_activation, continuous_parameterization=continuous_parameterization),
+            build_separate_ff_critic(in_size, hidden_sizes[CRITIC_KEY], hidden_activation))
 
 
 def build_separate_ff_option_critic(envs: Env,
                                    in_size: int,
                                    hidden_sizes: Union[Sequence[int], Dict[Sequence[int]]],
-                                   hidden_activation: nn.Module = Tanh,
+                                   hidden_activation: Callable[[], nn.Module] = Tanh,
                                    num_policies: int = 1,
-                                   continuous_parameterization='beta') -> List[nn.Module]:
+                                   continuous_parameterization='beta') -> Tuple[FFActor, FFCritic, FFActor, FFActor]:
     """Actor, critic, termination, and option actor networks"""
     if isinstance(hidden_sizes, Sequence): hidden_sizes = {PI_KEY: hidden_sizes, CRITIC_KEY: hidden_sizes, TERMINATION_KEY: hidden_sizes, OPTION_ACTOR_KEY: hidden_sizes}
-    return [
+    return (
         build_separate_ff_actor(envs, in_size, hidden_sizes[PI_KEY], hidden_activation, num_policies, continuous_parameterization),
         build_separate_ff_critic(in_size, hidden_sizes[CRITIC_KEY], hidden_activation, num_policies),
         build_separate_ff_termination(in_size, hidden_sizes[TERMINATION_KEY], hidden_activation, num_policies),
         build_separate_ff_option_actor(in_size, hidden_sizes[OPTION_ACTOR_KEY], hidden_activation, num_policies),
-    ]
+    )
 
 
 
