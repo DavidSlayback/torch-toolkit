@@ -581,7 +581,7 @@ class OptionCritic_Unshared(nn.Module):
 
 def build_separate_ff_actor_critic(envs: Env,
                                    in_size: int,
-                                   hidden_sizes: Union[Sequence[int], Dict[Sequence[int]]],
+                                   hidden_sizes: Union[Sequence[int], Dict[str, Sequence[int]]],
                                    hidden_activation: Callable[[], nn.Module] = Tanh,
                                    continuous_parameterization='beta') -> Tuple[FFActor, FFCritic]:
     """Actor and critic networks"""
@@ -592,7 +592,7 @@ def build_separate_ff_actor_critic(envs: Env,
 
 def build_separate_ff_option_critic(envs: Env,
                                    in_size: int,
-                                   hidden_sizes: Union[Sequence[int], Dict[Sequence[int]]],
+                                   hidden_sizes: Union[Sequence[int], Dict[str, Sequence[int]]],
                                    hidden_activation: Callable[[], nn.Module] = Tanh,
                                    num_policies: int = 1,
                                    continuous_parameterization='beta') -> Tuple[FFActor, FFCritic, FFActor, FFActor]:

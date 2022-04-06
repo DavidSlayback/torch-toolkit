@@ -102,7 +102,7 @@ class ObservationNormalizationModule(nn.Module):
         self.num_steps.add_(xv.shape[0])
         input_to_old_mean = xv - self.running_mean
         mean_diff = torch.sum(input_to_old_mean / self.num_steps, dim=0)
-        self.running_meana.add_(mean_diff)
+        self.running_mean.add_(mean_diff)
         input_to_new_mean = xv - self.running_mean
         var_diff = torch.sum(input_to_new_mean * input_to_old_mean, dim=0)
         self.running_variance.add_(var_diff)
