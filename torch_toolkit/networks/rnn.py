@@ -70,7 +70,7 @@ def update_state_with_index(state: Tensor, tidx: Tensor, ntidx: Tensor, idx_stat
 
 class SequentialPassState(nn.Sequential):
     """Sequential Module that takes additional input that it ignores"""
-    def forward(self, x, state: Optional[Tensor] = None) -> Tuple[Tensor, Optional[Tensor]]:
+    def forward(self, x, state) -> Tuple[Tensor, Tensor]:
         for module in self:
             x = module(x)
         return x, state
@@ -78,7 +78,7 @@ class SequentialPassState(nn.Sequential):
 
 class SequentialStartState(nn.Sequential):
     """Sequential module that takes additional input only relevant to first module"""
-    def forward(self, x, state: Optional[Tensor] = None) -> Tuple[Tensor, Optional[Tensor]]:
+    def forward(self, x, state) -> Tuple[Tensor, Tensor]:
         for i, module in enumerate(self):
             if i == 0: x, state = module(x, state)
             else: x = module(x)
