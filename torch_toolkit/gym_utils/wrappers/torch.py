@@ -27,7 +27,7 @@ class PyTorchWrapper(Wrapper):
 
     def step(self, actions: Tensor) -> Tuple[Tensor, Tensor, Tensor, Dict]:
         o, r, d, info = self.env.step(to_np(actions))
-        o, d = to_th((o, d))
+        o, d = to_th((o,d))
         reward = to_th(r, self.device, th.float32)  # Override with float32
         return o, reward, d, info
 

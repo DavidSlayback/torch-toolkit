@@ -26,7 +26,7 @@ class FlattenLayer(nn.Module):
     ndims_to_flatten: Final[int]
     def __init__(self, shape: Sequence[int]):
         super().__init__()
-        self.ndims_to_flatten = len(shape) + 1
+        self.ndims_to_flatten = len(shape)
 
     def forward(self, x: Tensor):
         shape = (x.shape[:-self.ndims_to_flatten]) + (-1,)
