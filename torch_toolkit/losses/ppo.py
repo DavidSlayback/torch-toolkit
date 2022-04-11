@@ -1,5 +1,7 @@
 __all__ = ['clipped_ppo_loss', 'unclipped_ppo_loss', 'kl_loss', 'ppo_vf_loss']
 
+from typing import Optional
+
 import torch as th
 import torch.nn.functional as F
 Tensor = th.Tensor
