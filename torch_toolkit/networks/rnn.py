@@ -151,7 +151,7 @@ class FakeNormGRUCell(nn.Module):
     """
     def __init__(self, input_size: int, hidden_size: int, bias: bool = True, n_preact: bool = True, norm_type: str = 'rms'):
         super().__init__()
-        self.core = nn.Sequential(layer_init(nn.Linear(input_size, hidden_size, bias=bias)), Tanh(), str_to_norm_cls(norm_type)(hidden_size))
+        self.core = nn.Sequential(layer_init(nn.Linear(input_size, hidden_size, bias=bias)),  str_to_norm_cls(norm_type)(hidden_size), Tanh(inplace=True))
 
     def forward(self, input: Tensor, hx: Tensor):
         return self.core(input)
