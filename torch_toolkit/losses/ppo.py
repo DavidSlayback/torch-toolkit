@@ -1,16 +1,28 @@
-__all__ = ['ppo_pg_loss', 'ppo_vf_loss']
+__all__ = ['clipped_ppo_loss', 'unclipped_ppo_loss', 'kl_loss', 'ppo_vf_loss']
 
 import torch as th
 import torch.nn.functional as F
 Tensor = th.Tensor
 
 
-def ppo_pg_loss(advantages: Tensor, new_log_probs: Tensor, old_log_probs: Tensor, clip_coef: float):
+def clipped_ppo_loss(advantages: Tensor, logratio: Tensor, clip_coef: float):
     """Single PPO epoch. Return clipped policy loss"""
-    ratio = (new_log_probs - old_log_probs).exp()
+    ratio = logratio.exp()
     pi_loss1 = -advantages * ratio
     pi_loss2 = -advantages * th.clamp(ratio, 1 - clip_coef, 1 + clip_coef)
     return th.max(pi_loss1, pi_loss2).mean()
+
+
+def unclipped_ppo_loss(advantages: Tensor, logratio: Tensor, clip_coef: Optional[float] = 0.):
+    """Single PPO epoch. Return unclipped policy loss"""
+    ratio = logratio.exp()
+    surr_loss = (-advantages * ratio).mean()
+    return surr_loss
+
+
+def kl_loss(logratio: Tensor, kl_coef: float, reverse: bool = False) -> Tensor:
+    """Single PPO epoch. Return kl penalty"""
+    return (logratio * logratio.exp()).mean() * kl_coef if not reverse else (-logratio).mean()
 
 
 def ppo_vf_loss(returns: Tensor, new_values: Tensor, old_values: Tensor, clip_coef: float = 0.):
