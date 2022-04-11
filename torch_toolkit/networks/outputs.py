@@ -603,14 +603,14 @@ def build_separate_ff_option_critic(envs: Env,
                                    hidden_sizes: Union[Sequence[int], Dict[str, Sequence[int]]],
                                    hidden_activation: Callable[[], nn.Module] = Tanh,
                                    num_policies: int = 1,
-                                   continuous_parameterization='beta') -> Tuple[FFActor, FFCritic, FFActor, FFActor]:
+                                   continuous_parameterization='beta', critic_in_size: Optional[int] = 0, option_in_size: Optional[int] = 0) -> Tuple[FFActor, FFCritic, FFActor, FFActor]:
     """Actor, critic, termination, and option actor networks"""
     if isinstance(hidden_sizes, Sequence): hidden_sizes = {PI_KEY: hidden_sizes, CRITIC_KEY: hidden_sizes, TERMINATION_KEY: hidden_sizes, OPTION_ACTOR_KEY: hidden_sizes}
     return (
         build_separate_ff_actor(envs, in_size, hidden_sizes[PI_KEY], hidden_activation, num_policies, continuous_parameterization),
-        build_separate_ff_critic(in_size, hidden_sizes[CRITIC_KEY], hidden_activation, num_policies),
+        build_separate_ff_critic(critic_in_size or in_size, hidden_sizes[CRITIC_KEY], hidden_activation, num_policies),
         build_separate_ff_termination(in_size, hidden_sizes[TERMINATION_KEY], hidden_activation, num_policies),
-        build_separate_ff_option_actor(in_size, hidden_sizes[OPTION_ACTOR_KEY], hidden_activation, num_policies),
+        build_separate_ff_option_actor(option_in_size or in_size, hidden_sizes[OPTION_ACTOR_KEY], hidden_activation, num_policies),
     )
 
 
