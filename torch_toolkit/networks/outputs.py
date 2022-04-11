@@ -529,8 +529,9 @@ class OptionCritic_Unshared(nn.Module):
         option = torch.where(termination > 0, new_option, prev_option)  # Sample option where terminal
         action, scaled_action, action_logits = self._sample_actor(x, option)
         lp = self.actor.log_probs(action_logits, action)
+        lp_w = self.actor_w.log_probs(option_logits, option)
         return {'t': termination, 'b': beta_logits,
-                'w': option, 'lp_w': option_logits,
+                'w': option, 'lp_w': lp_w,
                 'a': action, 's_a': scaled_action, 'lp': lp}
 
     @torch.jit.export
