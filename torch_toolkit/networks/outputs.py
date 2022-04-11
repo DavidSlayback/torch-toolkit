@@ -97,7 +97,7 @@ class DiscreteHead(nn.Module):
         total_size = int(np.prod(n) * num_policies)
         linear = layer_init(nn.Linear(in_size, total_size), ORTHOGONAL_INIT_VALUES['pi'])
         if isinstance(n, Sequence) or num_policies > 1:
-            reshape_size = (num_policies,) + tuple(n)
+            reshape_size = (num_policies,) + (tuple(n) if isinstance(n, Sequence) else (n,))
             self.pi = nn.Sequential(linear, ReshapeLayer(reshape_size))
         else: self.pi = linear
 
