@@ -48,9 +48,10 @@ def build_intake_from_discrete_box(space: spaces.Box, **kwargs) -> Tuple[nn.Modu
     """Discrete Box (e.g., MiniGrid, FourRooms)"""
     embed_dim = kwargs.pop(EMBED, 0)
     n = int(space.high.max() - space.low.min())  # Assume same high for all, could be smarter
-    layers = [FlattenLayer(space.shape)]  # Reshapes to [T?, B?, n]
+    layers = [FlattenLayer(space.shape)]  # Reshapes to [T?, B?, n]  #  3x3 -> 9
     if not embed_dim: layers.append(OneHotLayer(n))
-    else: layers.append(nn.Embedding(n, embed_dim))
+    else: layers.append(nn.Embedding(n, embed_dim))  # -> [9,8]
+    layers.append(FlattenLayer(space.shape))  # -> 9*8
     return nn.Sequential(*layers), embed_dim or n
 
 
