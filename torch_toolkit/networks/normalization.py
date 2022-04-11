@@ -1,7 +1,7 @@
 __all__ = ['ObservationNormalizationModule', 'RMSNorm']
 
 import numbers
-from typing import Tuple, Union, List, Optional
+from typing import Tuple, Union, List, Optional, Final
 import torch
 import torch.nn as nn
 from ..typing import Tensor
@@ -80,10 +80,13 @@ class ObservationNormalizationModule(nn.Module):
 
     Args:
         n_obs: Number of observations from environment. Assumes vector
+        normalize_obs: If True,
     """
-    def __init__(self, n_obs: int):
+    normalize_obs: Final[bool] = True
+    def __init__(self, n_obs: int, normalize_obs: bool = True):
         super().__init__()
         self.n_obs = n_obs
+        self.normalize_obs = normalize_obs
         self.num_steps = nn.Parameter(torch.zeros(()), requires_grad=False)
         self.running_mean = nn.Parameter(torch.zeros(n_obs), requires_grad=False)
         self.running_variance = nn.Parameter(torch.zeros(n_obs), requires_grad=False)
@@ -91,21 +94,24 @@ class ObservationNormalizationModule(nn.Module):
     @torch.no_grad()
     def forward(self, x: Tensor, running_update: bool = False) -> Tensor:
         """Normalize observation. Optionally, update statistics before"""
-        if running_update: self.update_normalization(x)
-        return self.normalize(x)
+        if self.normalize_obs:
+            if running_update: self.update_normalization(x)
+            return self.normalize(x)
+        else: return x
 
     @torch.jit.export
     @torch.no_grad()
     def update_normalization(self, x: Tensor) -> None:
         """Update mean, variance, and steps"""
-        xv = x.view(-1, self.n_obs)
-        self.num_steps.add_(xv.shape[0])
-        input_to_old_mean = xv - self.running_mean
-        mean_diff = torch.sum(input_to_old_mean / self.num_steps, dim=0)
-        self.running_mean.add_(mean_diff)
-        input_to_new_mean = xv - self.running_mean
-        var_diff = torch.sum(input_to_new_mean * input_to_old_mean, dim=0)
-        self.running_variance.add_(var_diff)
+        if self.normalize_obs:
+            xv = x.view(-1, self.n_obs)
+            self.num_steps.add_(xv.shape[0])
+            input_to_old_mean = xv - self.running_mean
+            mean_diff = torch.sum(input_to_old_mean / self.num_steps, dim=0)
+            self.running_mean.add_(mean_diff)
+            input_to_new_mean = xv - self.running_mean
+            var_diff = torch.sum(input_to_new_mean * input_to_old_mean, dim=0)
+            self.running_variance.add_(var_diff)
 
     @torch.jit.export
     def normalize(self, x: Tensor) -> Tensor:
