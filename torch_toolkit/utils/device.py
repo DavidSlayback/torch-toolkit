@@ -1,11 +1,12 @@
-__all__ = ['th_device', 'to_th', 'to_np', 'th_stack', 'np_stack', 'torch_type_to_np', 'np_type_to_torch', 'buffer_func']
+__all__ = ['th_device', 'to_th', 'to_np', 'th_stack', 'np_stack', 'torch_type_to_np', 'np_type_to_torch', 'buffer_func',
+           'dict_func']
 
 from typing import Union, Iterable, Dict, Tuple, Any, Optional, List, Callable
 from numbers import Number
 from dataclasses import is_dataclass, astuple
 import torch as th
 import numpy as np
-from ..typing import Array, Tensor, XArray
+from ..typing import Array, Tensor, XArray, TensorDict
 
 
 def th_device(string: Optional[Union[str, th.device]] = 'cuda') -> Optional[th.device]:
@@ -40,13 +41,23 @@ def to_np(buffer_: Union[Array, Tensor, Dict, Iterable, Any]):
     else: return buffer_
 
 
-def th_stack(buffer_: Union[List[XArray], Tuple[XArray]], device: Union[str, th.device] = 'cpu') -> Tensor:
+def th_stack(buffer_: Union[List[XArray], Tuple[XArray]], device: Union[str, th.device] = 'cpu') -> Union[Tensor, TensorDict]:
     """Stack iterable along 0-th dimension as torch tensor"""
     example = buffer_[0]  # Get example
+    if isinstance(example, Dict): return dict_func(th.stack, *buffer_)
     if isinstance(example, Tensor): return th.stack(buffer_).to(device)
     elif isinstance(example, Array): return to_th(np.stack(buffer_), device)
     elif isinstance(example, Number): return th.tensor(buffer_, device=device)
     else: raise ValueError("Input cannot be converted to torch stack")
+
+
+def dict_func(f: Callable[..., Tensor], *sds: TensorDict) -> TensorDict:
+    """Map a function over each field in a TensorDict (e.g., torch.stack)"""
+    items = {}
+    keys = sds[0].keys()
+    for k in keys:
+        items[k] = f(*[sd[k] for sd in sds])
+    return items
 
 
 def buffer_func(buffer_: Union[Array, Tensor, Dict, Iterable, Any], fn: Callable, *args, **kwargs):
