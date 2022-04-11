@@ -1,7 +1,8 @@
 """Various recurrent layers and utilitiyes"""
 
-__all__ = ['break_grad', 'mask_state', 'update_state_with_index', 'ResetGRU', 'NormGRUCell', 'update_state_with_mask']
-from typing import Optional, Tuple, Dict
+__all__ = ['break_grad', 'mask_state', 'update_state_with_index', 'NormGRUCell', 'update_state_with_mask',
+           'SequentialStartState', 'SequentialPassState', 'SequentialEndState', 'FakeNormGRUCell']
+from typing import Optional, Tuple, Dict, Union
 
 import torch
 import torch as th
@@ -9,6 +10,9 @@ import torch.nn as nn
 from ..typing import Tensor, TensorDict, OptionalTensor
 from .init import layer_init, ORTHOGONAL_INIT_VALUES
 from .normalization import RMSNorm
+from .activations import Tanh
+
+State = Union[Tensor, Tuple[Tensor, Tensor]]
 
 
 def break_grad(x: Tensor) -> Tensor:
@@ -70,19 +74,28 @@ def update_state_with_index(state: Tensor, tidx: Tensor, ntidx: Tensor, idx_stat
 
 class SequentialPassState(nn.Sequential):
     """Sequential Module that takes additional input that it ignores"""
-    def forward(self, x, state: Optional[Tensor] = None) -> Tensor:
+    def forward(self, x, state: State) -> Tuple[Tensor, State]:
         for module in self:
             x = module(x)
-        return x
+        return x, state
 
 
 class SequentialStartState(nn.Sequential):
     """Sequential module that takes additional input only relevant to first module"""
-    def forward(self, x, state: Optional[Tensor] = None) -> Tensor:
+    def forward(self, x, state: State) -> Tuple[Tensor, State]:
         for i, module in enumerate(self):
             if i == 0: x, state = module(x, state)
             else: x = module(x)
-        return x
+        return x, state
+
+
+class SequentialEndState(nn.Sequential):
+    """Sequential module that takes additional input only relevant to last module"""
+    def forward(self, x, state: State) -> Tuple[Tensor, State]:
+        for i, module in enumerate(self):
+            if i == len(self) - 1: x, state = module(x, state)
+            else: x = module(x)
+        return x, state
 
 
 class ResetCore(nn.Module):
@@ -121,21 +134,57 @@ class ResetCore(nn.Module):
         return self._initial_state[indices]
 
 
+def str_to_norm_cls(norm_type: str = 'rms'):
+    norm_cls = RMSNorm if norm_type == 'rms' else nn.LayerNorm if norm_type == 'ln' else nn.Identity
+    return norm_cls
+
+
+class FakeNormGRUCell(nn.Module):
+    """Fake GRU class. Just a linear layer with tanh, optional laayernorm
+
+    Args:
+        input_size: Number of input units. Remember to include dimension of action if providing
+        hidden_size: Number of output units, also size of hidden state
+        bias: Use a bias
+        n_preact: LayerNorm before any activation
+        norm_type: One of 'ln, rms' or anything else. ln for LayerNorm, rms for RMSNorm, anything else for none (Identity)
+    """
+    def __init__(self, input_size: int, hidden_size: int, bias: bool = True, n_preact: bool = True, norm_type: str = 'rms'):
+        super().__init__()
+        self.core = nn.Sequential(layer_init(nn.Linear(input_size, hidden_size, bias=bias)), Tanh(), str_to_norm_cls(norm_type)(hidden_size))
+
+    def forward(self, input: Tensor, hx: Tensor):
+        return self.core(input)
+
 
 class NormGRUCell(nn.RNNCellBase):
     n_preact: torch.jit.Final[bool]
     """Layer/RMS-normalized GRU as in https://arxiv.org/pdf/1607.06450.pdf
 
-    https://github.com/pytorch/pytorch/issues/12482#issuecomment-440485163"""
+    https://github.com/pytorch/pytorch/issues/12482#issuecomment-440485163
+    
+    Args:
+        input_size: Number of input units. Remember to include dimension of action if providing
+        hidden_size: Number of output units, also size of hidden state
+        bias: Use a bias
+        n_preact: LayerNorm before any activation
+        norm_type: One of 'ln, rms' or anything else. ln for LayerNorm, rms for RMSNorm, anything else for none (Identity)
+    """
     def __init__(self, input_size, hidden_size, bias=True, n_preact=True, norm_type: str = 'rms'):
         super().__init__(input_size, hidden_size, bias, num_chunks=3)
-        norm_cls = RMSNorm if norm_type == 'rms' else nn.LayerNorm
+        norm_cls = RMSNorm if norm_type == 'rms' else nn.LayerNorm if norm_type == 'ln' else nn.Identity
         self.n_preact = n_preact
         if n_preact:
             self.n_ih = norm_cls(3 * self.hidden_size)
             self.n_hh = norm_cls(3 * self.hidden_size)
         self.n_in = norm_cls(self.hidden_size)
         self.n_hn = norm_cls(self.hidden_size)
+        # Orthogonal initialization
+        nn.init.orthogonal_(self.weight_hh, 2 ** 0.5)
+        nn.init.orthogonal_(self.weight_ih, 2 ** 0.5)
+        if self.bias:
+            nn.init.constant_(self.bias_hh, 0)
+            nn.init.constant_(self.bias_ih, 0)
 
     def forward(self, input: Tensor, hx: Tensor):
         ih = input @ self.weight_ih.t() + self.bias_ih
@@ -154,79 +203,4 @@ class NormGRUCell(nn.RNNCellBase):
         n = th.tanh(i_n + r * h_n)
         h = (1 - z) * n + z * hx
         return h
-
-
-class ResetGRU(nn.Module):
-    """GRU that automatically resets state according to dones. Optional learnable state. Optional sometimes updating
-
-    Args:
-        input_size: Size of incoming tensor
-        hidden_size: Size of GRU
-        learnable_state: Whether to do a learnable initial state or just reset to 0s. If >1, multiple learnable states
-        layer_norm: Whether to use a layer normalized GRUCell
-        variable_update: If False (default), assume we update all elements of state every time this is called. If True, take update_mask parameter into account
-    """
-    def __init__(self, input_size: int, hidden_size: int, learnable_state: int = 0, layer_norm: bool = False, variable_update: bool = False):
-        super().__init__()
-        gru_cls = NormGRUCell if layer_norm else nn.GRUCell
-        self.core = layer_init(gru_cls(input_size, hidden_size), ORTHOGONAL_INIT_VALUES['sigmoid'])
-        init_state = th.zeros(1, hidden_size)
-        if learnable_state:
-            init_state = th.tile(init_state, (learnable_state, 1))
-            self.register_parameter('init_state', nn.Parameter(init_state))
-        else: self.register_buffer('init_state', init_state)
-        self.variable_update = variable_update
-
-    def _update_at_mask(self, x, state, update_mask):
-        """Update state at mask. Saves computation by only computing new states for updating indices"""
-        s = th.zeros_like(state)
-        f_idx = self.core(x[update_mask], state[update_mask])
-        s[update_mask] = f_idx
-        return mask_state(state, update_mask, s)
-
-    def _step_one(self, x: Tensor, state: Tensor, reset: Optional[Tensor] = None, idx: Optional[Tensor] = None) -> Tuple[Tensor, Tensor]:
-        """Single step"""
-        if reset is not None:
-            state = mask_state(state, reset, self.init_state[idx])
-        f = self.core(x, state)
-        return f, f.clone()
-
-    def _unroll(self, x: Tensor, state: Tensor, reset: Optional[Tensor] = None, idx: Optional[Tensor] = None) -> Tuple[Tensor, Tensor]:
-        """Multi-step"""
-        T, B = x.shape[:2]
-        states = []
-        if reset is not None and idx is not None:
-            for t in range(T):
-                state = mask_state(state, reset[t], self.init_state[idx[t]])
-                states.append(self.core(x[t], state))
-                state = states[-1]
-        else:
-            for t in range(T):
-                states.append(self.core(x[t], state))
-                state = states[-1]
-        return th.stack(states, 0), state
-
-
-    def forward(self, x: Tensor, state: Optional[Tensor] = None,
-                reset: Optional[Tensor] = None, idx: Optional[Tensor] = None,
-                # update_mask: Optional[th.BoolTensor] = None
-                ) -> Tuple[Tensor, Tensor]:
-        """Forward pass
-
-        Args:
-            x: Tensor input. Size is [T?xBxi].
-            state: Tensor input for incoming state. Size is [Bxh]. If None, use initial state
-            reset: Tensor input telling where to reset to initial state. Size if [T?xB]. If None, assume no resets.
-            idx: Tensor input telling which initial state to use (if resetting). If None, assume first index
-            # update_mask: Tensor input telling where state should actually be updated. Where not updating, use old state. If None, assume all update
-        Returns:
-            (output [T?xBxi], last state[Bxi]) tuple
-        """
-        if idx is None: idx = th.zeros(x.shape[:-1], device=x.device, dtype=th.int64)
-        if state is None: state = self.init_state[0].unsqueeze(0).expand(x.shape[-2], -1)
-        if reset is None: reset = th.zeros_like(idx, dtype=th.float32)
-        if x.dim() == 2:
-            return self._step_one(x, state, reset, idx)
-        else:
-            return self._unroll(x, state, reset, idx)
 
