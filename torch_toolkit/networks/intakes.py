@@ -26,7 +26,7 @@ def build_intake_from_gym_env(envs: Env, **kwargs) -> Tuple[nn.Module, Union[int
         if is_float: return build_intake_from_float_box(space)
         is_pixel = (np.issubdtype(space.dtype, np.unsignedinteger) and space.high.max() == 255)
         if is_pixel: return ImageScaler(), space.shape  # Assume that we need to scale if we're still seeing this space
-        else: return build_intake_from_discrete_box(space)
+        else: return build_intake_from_discrete_box(space, **kwargs)
     elif isinstance(space, spaces.Dict):
         return build_intake_from_dict(space)
     else: raise ValueError('Single space must be box or discrete')
