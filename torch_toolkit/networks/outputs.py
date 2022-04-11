@@ -550,15 +550,22 @@ class OptionCritic_Unshared(nn.Module):
         return {'a': action, 's_a': scaled_action, 'lp': lp}
 
     @torch.jit.export
-    def unroll(self, x: Tensor, prev_option: Tensor, termination: Tensor, option: Tensor, action: Tensor,
+    def unroll(self, x: Tensor, prev_option: Tensor, option: Tensor, action: Tensor,
                x_w: Optional[Tensor] = None, x_q: Optional[Tensor] = None) -> Dict[str, Tensor]:
-        """Get all necessary quantities of unroll"""
+        """Get all necessary quantities of unroll
+
+        Options is T+1
+        First T are prev option, T+1 are option
+
+        x is T+1
+        action is T+1
+        """
         # T, B = x.shape[:2]
         # x = x.view(T*B, -1)
         # p_w = prev_option.view(T*B)
         # w = option.view(T*B)
         # Termination component
-        beta_logits = self.termination.forward(x)
+        beta_logits = self.termination.forward(x[:-1])
         beta_probs = self.termination.probs(beta_logits)  # All termination probabilities
         beta_probs_w_tm1 = batched_index(prev_option, beta_probs)  # Termination probabilities of previous option
         # Option component
