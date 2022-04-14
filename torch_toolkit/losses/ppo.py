@@ -12,7 +12,7 @@ def clipped_ppo_loss(advantages: Tensor, logratio: Tensor, clip_coef: float):
     ratio = logratio.exp()
     pi_loss1 = -advantages * ratio
     pi_loss2 = -advantages * th.clamp(ratio, 1 - clip_coef, 1 + clip_coef)
-    return th.max(pi_loss1, pi_loss2).mean()
+    return th.maximum(pi_loss1, pi_loss2).mean()
 
 
 def unclipped_ppo_loss(advantages: Tensor, logratio: Tensor, clip_coef: Optional[float] = 0.):
@@ -33,5 +33,5 @@ def ppo_vf_loss(returns: Tensor, new_values: Tensor, old_values: Tensor, clip_co
     if clip_coef:
         v_clipped = old_values + th.clamp(new_values - old_values, -clip_coef, clip_coef)
         vf_loss_clipped = F.mse_loss(v_clipped, returns, reduction='none')
-        return th.max(vf_loss_clipped, vf_loss_unclipped).mean()
+        return th.maximum(vf_loss_clipped, vf_loss_unclipped).mean()
     else: return vf_loss_unclipped.mean()

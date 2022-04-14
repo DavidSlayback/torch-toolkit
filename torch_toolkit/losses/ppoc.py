@@ -13,7 +13,7 @@ def ppoc_pg_loss(advantages: Tensor, new_log_probs: Tensor, old_log_probs: Tenso
     ratio = (new_log_probs - old_log_probs).exp()
     pi_loss1 = -advantages * ratio
     pi_loss2 = -advantages * th.clamp(ratio, 1 - clip_coef, 1 + clip_coef)
-    return th.max(pi_loss1, pi_loss2).mean()
+    return th.maximum(pi_loss1, pi_loss2).mean()
 
 
 def ppoc_vf_loss(returns: Tensor, new_q_sw: Tensor, old_q_sw: Tensor, clip_coef: float = 0.):
@@ -29,7 +29,7 @@ def ppoc_vf_loss(returns: Tensor, new_q_sw: Tensor, old_q_sw: Tensor, clip_coef:
         vf_loss_unclipped = F.mse_loss(new_q_sw, returns, reduction='none')  # Basic MSE loss, don't reduce
         v_clipped = old_q_sw + th.clamp(new_q_sw - old_q_sw, -clip_coef, clip_coef)
         vf_loss_clipped = F.mse_loss(v_clipped, returns, reduction='none')
-        return th.max(vf_loss_clipped, vf_loss_unclipped).mean()
+        return th.maximum(vf_loss_clipped, vf_loss_unclipped).mean()
     else: return a2oc_vf_loss(returns, new_q_sw)
 
 
@@ -53,7 +53,7 @@ def ppoc_w_pg_loss(option_advantages: Tensor, new_option_log_probs_tp1: Tensor, 
         if was_option_selected: ratio.mul_(was_option_selected)
         pi_loss1 = -option_advantages * ratio
         pi_loss2 = -option_advantages * th.clamp(ratio, 1 - clip_coef, 1 + clip_coef)
-        l = th.max(pi_loss1, pi_loss2) * new_beta_tp1.detach()
+        l = th.maximum(pi_loss1, pi_loss2) * new_beta_tp1.detach()
         return l.mean().mul_(gamma)
     else: return a2oc_w_pg_loss(option_advantages, new_option_log_probs_tp1, new_beta_tp1, gamma, was_option_selected)
 
@@ -77,6 +77,6 @@ def ppoc_beta_loss(termination_advantages: Tensor, new_beta_stp1_w: Tensor, old_
         A = termination_advantages + delib_cost
         beta_loss1 = A * ratio
         beta_loss2 = A * th.clamp(ratio, 1 - clip_coef, 1 + clip_coef)
-        l = th.min(beta_loss1, beta_loss2)  # Min because advantages should be positive?
+        l = th.minimum(beta_loss1, beta_loss2)  # Min because advantages should be positive?
         return -l.mean().mul_(gamma)
     else: return a2oc_beta_loss(termination_advantages, new_beta_stp1_w, gamma, delib_cost, first_step)
