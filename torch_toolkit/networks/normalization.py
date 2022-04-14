@@ -30,10 +30,11 @@ class RMSNorm(nn.Module):
             has learnable per-element affine parameters initialized to ones (for weights)
             and zeros (for biases). Default: ``True``.
     """
-    __constants__ = ['normalized_shape', 'eps', 'elementwise_affine']
+    __constants__ = ['normalized_shape', 'eps', 'elementwise_affine', 'p', 'd']
     normalized_shape: Tuple[int, ...]
     eps: float
     p: float
+    d: int
     elementwise_affine: bool
 
     def __init__(self, normalized_shape: _shape_t, p: float = 1., eps: float = 1e-5, elementwise_affine: bool = True,
@@ -44,6 +45,7 @@ class RMSNorm(nn.Module):
             # mypy error: incompatible types in assignment
             normalized_shape = (normalized_shape,)  # type: ignore[assignment]
         self.normalized_shape = tuple(normalized_shape)  # type: ignore[arg-type]
+        self.d = self.normalized_shape[0]
         self.p = p
         self.eps = eps
         self.elementwise_affine = elementwise_affine
