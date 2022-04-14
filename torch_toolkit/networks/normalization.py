@@ -74,7 +74,7 @@ class RMSNorm(nn.Module):
             d_x = partial_size
         rms_x = norm_x * d_x ** (-1. / 2)
         x_normed = x / (rms_x + self.eps)
-        return self.scale * x_normed
+        return self.weight * x_normed
 
 
 class ObservationNormalizationModule(nn.Module):
