@@ -522,11 +522,11 @@ class OptionCritic_Unshared(nn.Module):
         return self.actor.sample(x, idx)
 
     @torch.jit.export
-    def sample(self, x: Tensor, prev_option: Tensor, x_w: Optional[Tensor] = None) -> Dict[str, Tensor]:
+    def sample(self, x: Tensor, prev_option: Tensor, should_reset: Tensor, x_w: Optional[Tensor] = None) -> Dict[str, Tensor]:
         """Sample termination, new option, action from option"""
         termination, beta_logits = self.termination.sample(x=x, idx=prev_option)[0:3:2]  # Sample termination for previous option
         new_option, option_logits = self._sample_option_actor(x, x_w)[0:3:2]
-        option = torch.where(termination > 0, new_option, prev_option)  # Sample option where terminal
+        option = torch.where((termination + should_reset) > 0, new_option, prev_option)  # Sample option where terminal
         action, scaled_action, action_logits = self._sample_actor(x, option)
         lp = self.actor.log_probs(action_logits, action)
         lp_w = self.actor_w.log_probs(option_logits, option)
@@ -535,11 +535,11 @@ class OptionCritic_Unshared(nn.Module):
                 'a': action, 's_a': scaled_action, 'lp': lp}
 
     @torch.jit.export
-    def sample_without_action(self, x: Tensor, prev_option: Tensor, x_w: Optional[Tensor] = None) -> Dict[str, Tensor]:
+    def sample_without_action(self, x: Tensor, prev_option: Tensor, should_reset: Tensor, x_w: Optional[Tensor] = None) -> Dict[str, Tensor]:
         """Sample termination and new option, don't sample action (wait for new x input as in FA2OC"""
         termination, beta_logits = self.termination.sample(x=x, idx=prev_option)[0:3:2]  # Sample termination for previous option
         new_option, option_logits = self._sample_option_actor(x, x_w)[0:3:2]
-        option = torch.where(termination > 0, new_option, prev_option)  # Sample option where terminal
+        option = torch.where((termination + should_reset) > 0, new_option, prev_option)  # Sample option where terminal
         lp_w = self.actor_w.log_probs(option_logits, new_option)
         return {'t': termination, 'b': beta_logits, 'w': option, 'lp_w': lp_w}
 
