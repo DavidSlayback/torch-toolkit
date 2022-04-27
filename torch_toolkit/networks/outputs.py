@@ -255,14 +255,16 @@ class IndependentGaussianHead(nn.Module):
     def log_prob(self, meanlogstd: Tensor, action: Tensor) -> Tensor:
         """Get log probability of action from stacked mean log_std vector"""
         mean, log_std = meanlogstd.chunk(2, -1)
+        mean = mean.squeeze(-1)
+        log_std = log_std.squeeze(-1)
         var = log_std ** 2
-        log_prob = (-((action - meanlogstd) ** 2) / (2 * var) - log_std - math.log(math.sqrt(2 * math.pi))).sum(-1)
+        log_prob = (-((action - mean) ** 2) / (2 * var) - log_std - math.log(math.sqrt(2 * math.pi))).sum(-1)
         return log_prob
 
     @torch.jit.export
     def entropy(self, meanlogstd: Tensor):
         """Get entropy from stacked mean log_std vector"""
-        mean, log_std = meanlogstd.chunk(2, -1)
+        log_std = meanlogstd[..., -1]
         return (0.5 + 0.5 * math.log(2 * math.pi) + log_std).sum(-1)
 
 
@@ -320,14 +322,16 @@ class DependentGaussianHead(nn.Module):
     def log_prob(self, meanlogstd: Tensor, action: Tensor) -> Tensor:
         """Get log probability of action from stacked mean log_std vector"""
         mean, log_std = meanlogstd.chunk(2, -1)
+        mean = mean.squeeze(-1)
+        log_std = log_std.squeeze(-1)
         var = log_std ** 2
-        log_prob = (-((action - meanlogstd) ** 2) / (2 * var) - log_std - math.log(math.sqrt(2 * math.pi))).sum(-1)
+        log_prob = (-((action - mean) ** 2) / (2 * var) - log_std - math.log(math.sqrt(2 * math.pi))).sum(-1)
         return log_prob
 
     @torch.jit.export
     def entropy(self, meanlogstd: Tensor):
         """Get entropy from stacked mean log_std vector"""
-        mean, log_std = meanlogstd.chunk(2, -1)
+        log_std = meanlogstd[..., -1]
         return (0.5 + 0.5 * math.log(2 * math.pi) + log_std).sum(-1)
 
 
