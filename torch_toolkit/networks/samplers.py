@@ -4,10 +4,11 @@ import math
 from typing import Optional
 
 import torch
-from ..utils import batched_index
-from ..typing import Tensor
 from torch.distributions.utils import _standard_normal
 from torch.nn.functional import binary_cross_entropy_with_logits
+
+from ..typing import Tensor
+from ..utils import batched_index
 
 """Jit-compatible action sampling"""
 def sample_discrete(logits: Tensor, action: Optional[Tensor] = None):

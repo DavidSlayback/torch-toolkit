@@ -1,10 +1,11 @@
 __all__ = ['layer_init', 'ORTHOGONAL_INIT_VALUES', 'ORTHOGONAL_INIT_VALUES_TORCH', 'pi_init', 'v_init', 'beta_init', 'rnn_init', 'module_init']
 
+from functools import partial
 from typing import Dict
 
-import torch.nn.init as init
 import torch.nn as nn
-from functools import partial
+import torch.nn.init as init
+
 from .activations import Tanh, Sigmoid
 
 ORTHOGONAL_INIT_VALUES_TORCH = {

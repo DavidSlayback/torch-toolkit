@@ -4,10 +4,11 @@ import math
 from functools import partial
 from typing import Tuple, Union, Optional, Sequence
 
-import torch as th
-from ..typing import Tensor
-import torch.nn as nn
 import numpy as np
+import torch as th
+import torch.nn as nn
+
+from ..typing import Tensor
 
 Conv2dParam = Union[int, Tuple[int, int]]
 Conv3dParam = Union[int, Tuple[int, int, int]]

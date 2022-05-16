@@ -2,15 +2,16 @@
 
 __all__ = ['break_grad', 'mask_state', 'update_state_with_index', 'NormGRUCell', 'update_state_with_mask',
            'SequentialStartState', 'SequentialPassState', 'SequentialEndState', 'FakeNormGRUCell']
-from typing import Optional, Tuple, Dict, Union
+from typing import Optional, Tuple, Union
 
 import torch
 import torch as th
 import torch.nn as nn
-from ..typing import Tensor, TensorDict, OptionalTensor
-from .init import layer_init, ORTHOGONAL_INIT_VALUES
-from .normalization import RMSNorm
+
 from .activations import Tanh
+from .init import layer_init
+from .normalization import RMSNorm
+from ..typing import Tensor
 
 State = Union[Tensor, Tuple[Tensor, Tensor]]
 

@@ -3,7 +3,10 @@ __all__ = ['Tanh', 'Sigmoid', 'LogSigmoid']
 import torch as th
 import torch.nn as nn
 import torch.nn.functional as F
+
 from ..typing import Tensor
+
+
 # In practice, I've found that in-place activations give a marked speedup
 class Tanh(nn.Module):
     """Same as nn.Tanh, with option to perform inplace"""

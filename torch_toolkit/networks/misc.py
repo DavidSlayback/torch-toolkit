@@ -1,6 +1,6 @@
 __all__ = ['OneHotLayer', 'FlattenLayer', 'ImageScaler', 'ReshapeLayer']
 
-from typing import Sequence, Iterable, Dict, Tuple, Final
+from typing import Sequence, Dict, Tuple, Final
 
 import torch
 import torch.nn as nn

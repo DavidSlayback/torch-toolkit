@@ -1,15 +1,14 @@
 __all__ = ['MLP']
 
+from functools import partial
 from typing import Sequence
 
-import torch as th
 import torch.nn as nn
 from torch.nn import Linear
-from ..typing import Tensor
 
-from functools import partial
-from .init import layer_init, ORTHOGONAL_INIT_VALUES_TORCH
 from .activation_util import maybe_inplace
+from .init import layer_init, ORTHOGONAL_INIT_VALUES_TORCH
+from ..typing import Tensor
 
 
 class MLP(nn.Module):

@@ -1,4 +1,4 @@
 from .a2c import *
-from .ppo import *
 from .a2oc import *
+from .ppo import *
 from .ppoc import *

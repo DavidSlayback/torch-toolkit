@@ -1,9 +1,11 @@
 __all__ = ['ObservationNormalizationModule', 'RMSNorm']
 
 import numbers
-from typing import Tuple, Union, List, Optional, Final
+from typing import Tuple, Union, List, Final
+
 import torch
 import torch.nn as nn
+
 from ..typing import Tensor
 
 _shape_t = Union[int, List[int], torch.Size]

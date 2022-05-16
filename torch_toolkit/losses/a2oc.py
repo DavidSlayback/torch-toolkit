@@ -3,7 +3,7 @@ from typing import Optional
 
 import torch as th
 import torch.nn.functional as F
-from ..utils.th_idx import batched_index
+
 Tensor = th.Tensor
 
 

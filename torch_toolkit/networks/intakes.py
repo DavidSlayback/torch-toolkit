@@ -2,10 +2,12 @@ __all__ = ['build_intake_from_gym_env']
 
 """Modules that take in observations directly from a Gym or dm_env environment, with minimal preprocessing"""
 from typing import Union, Sequence, Tuple
+
+import numpy as np
 import torch
 import torch.nn as nn
 from gym import spaces, Env
-import numpy as np
+
 from .misc import ImageScaler, OneHotLayer, FlattenLayer, FlattenDict
 
 # Common keys

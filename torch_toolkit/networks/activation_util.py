@@ -4,6 +4,7 @@ from typing import Callable
 
 import torch.nn as nn
 
+
 def maybe_inplace(act_fn: Callable[[...], nn.Module]) -> Callable[[...], nn.Module]:
     """Use in-place version of activation function if there is one
 
