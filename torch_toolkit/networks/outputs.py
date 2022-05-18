@@ -160,7 +160,7 @@ class DiscreteHead(ActorHead):
         if self.num_policies > 1:
             if idx is not None: s_logits = batched_index(idx, logits)
         action = torch.multinomial(self.probs(s_logits), 1).squeeze(-1)
-        return ActorOutput(action, F.one_hot(action, self.n_act), logits if all_logits else s_logits)
+        return ActorOutput(action, action, logits if all_logits else s_logits)
 
     @torch.jit.export
     def probs(self, logits: Tensor):
