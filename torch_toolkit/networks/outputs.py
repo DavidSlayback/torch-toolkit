@@ -170,7 +170,8 @@ class DiscreteHead(ActorHead):
     @torch.jit.export
     def log_prob(self, logits: Tensor, action: Tensor) -> Tensor:
         """Get log probability of action from normalized logits"""
-        if self.num_policies > 1: return logits.gather(-1, action.reshape(logits.shape[:-2] + (1,1))).squeeze(-1)
+        if self.num_policies > 1: return torch.take_along_dim(logits, action.reshape(logits.shape[:-2] + (1,1)), -1).squeeze(-1)
+            # return logits.gather(-1, action.reshape(logits.shape[:-2] + (1,1))).squeeze(-1)
         else: return logits.gather(-1, action.unsqueeze(-1)).squeeze(-1)
 
     @torch.jit.export
