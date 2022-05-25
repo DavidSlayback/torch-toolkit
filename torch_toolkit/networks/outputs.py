@@ -2,7 +2,7 @@
 __all__ = ['build_action_head_from_gym_env',
            'build_separate_ff_actor_critic', 'build_separate_ff_option_actor',
            'ActorCritic_Unshared', 'OptionCritic_Unshared', 'FFActor', 'GRUActor', 'FFFullNet', 'GRUFullNet',
-           'build_mlp', 'InterestHead', 'BernoulliHead']
+           'build_mlp', 'InterestHead', 'BernoulliHead', 'build_separate_ff_interest']
 
 import math
 from enum import IntEnum
@@ -433,14 +433,14 @@ class CriticHead(nn.Module):
     def forward(self, x: Tensor) -> Tensor: return self.critic(x).squeeze(-1)
 
 
-class InterestHead(nn.Linear):
+class InterestHead(nn.Module):
     """Sigmoid interest function"""
     def __init__(self, in_size: int, n: int):
-        super().__init__(in_size, n)
+        super().__init__()
         # self.interest = layer_init(in_size, n, ORTHOGONAL_INIT_VALUES['pi'])
-        self.interest = layer_init(in_size, n, ORTHOGONAL_INIT_VALUES['sigmoid'])
+        self.interest = layer_init(nn.Linear(in_size, n), ORTHOGONAL_INIT_VALUES['pi'])
 
-    def forward(self, input: Tensor) -> Tensor: return torch.sigmoid(self.interest(input))
+    def forward(self, x: Tensor) -> Tensor: return torch.sigmoid(self.interest(x))
 
 from .activations import Tanh
 from .activation_util import maybe_inplace
@@ -533,6 +533,12 @@ def build_separate_ff_termination(in_size: int, hidden_sizes: Sequence[int], hid
 def build_separate_ff_critic(in_size: int, hidden_sizes: Sequence[int], hidden_activation: Callable[[], nn.Module] = Tanh, num_policies: int = 1) -> FFFullNet:
     """Critic (V or Q)"""
     head = layer_init(nn.Linear(hidden_sizes[-1], num_policies), 1.)
+    return FFFullNet(build_mlp(in_size, hidden_sizes, hidden_activation), head)
+
+
+def build_separate_ff_interest(in_size: int, hidden_sizes: Sequence[int], hidden_activation: Callable[[], nn.Module] = Tanh, num_policies: int = 1) -> FFFullNet:
+    """Interest function (like termination, but no sampling"""
+    head = InterestHead(hidden_sizes[-1], num_policies)
     return FFFullNet(build_mlp(in_size, hidden_sizes, hidden_activation), head)
 
 
