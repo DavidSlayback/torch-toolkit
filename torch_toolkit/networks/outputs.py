@@ -308,7 +308,7 @@ class IndependentGaussianHead(ActorHead):
         mean, log_std = meanlogstd.chunk(2, -1)
         mean = mean.squeeze(-1)
         log_std = log_std.squeeze(-1)
-        var = log_std ** 2
+        var = F.softplus(log_std) ** 2
         log_prob = (-((action - mean) ** 2) / (2 * var) - log_std - math.log(math.sqrt(2 * math.pi))).sum(-1)
         return log_prob
 
@@ -372,7 +372,7 @@ class DependentGaussianHead(ActorHead):
         mean, log_std = meanlogstd.chunk(2, -1)
         mean = mean.squeeze(-1)
         log_std = log_std.squeeze(-1)
-        var = log_std ** 2
+        var = F.softplus(log_std) ** 2
         log_prob = (-((action - mean) ** 2) / (2 * var) - log_std - math.log(math.sqrt(2 * math.pi))).sum(-1)
         return log_prob
 
