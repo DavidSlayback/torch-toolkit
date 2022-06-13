@@ -169,9 +169,17 @@ class DiscreteHead(ActorHead):
 
     @torch.jit.export
     def log_prob(self, logits: Tensor, action: Tensor) -> Tensor:
-        """Get log probability of action from normalized logits"""
+        """Get log probability of action from normalized logits
+
+        If we get logits for all policies, return logprobs for actions under all policies
+        Otherwise just return logprobs for the logits we get
+        Args:
+            logits: [T?, B, n_policy?, n_act] log probabilities
+            action: [T?, B] actions.
+        Returns:
+            [T?, B, n_policy?] log probabilities of sampled action
+        """
         if self.num_policies > 1: return torch.take_along_dim(logits, action.reshape(logits.shape[:-2] + (1,1)), -1).squeeze(-1)
-            # return logits.gather(-1, action.reshape(logits.shape[:-2] + (1,1))).squeeze(-1)
         else: return logits.gather(-1, action.unsqueeze(-1)).squeeze(-1)
 
     @torch.jit.export
@@ -231,7 +239,15 @@ class BetaHead(ActorHead):
 
     @torch.jit.export
     def log_prob(self, alphabeta: Tensor, action: Tensor) -> Tensor:
-        """Get log probability of action from stacked alpha beta vector"""
+        """Get log probability of action from stacked alpha beta vector
+
+        If we get alphabeta for all policies, return logprobs for actions under all policies
+        Otherwise just return logprobs for the logits we get
+        Args:
+            alphabeta: [T?, B, n_policy?, n_act, 2] alphabeta vector
+            action: [T?, B, n_act] actions.
+        """
+        if self.num_policies > 1 and (alphabeta.ndim - action.ndim == 2): action = action.unsqueeze(-2)  # Get logprob for each subpolicy
         ht = torch.stack([action, 1. - action], -1)  # Heads or tails
         return ((torch.log(ht) * (alphabeta - 1.)).sum(-1) +
                 torch.lgamma(alphabeta.sum(-1)) -
@@ -305,6 +321,7 @@ class IndependentGaussianHead(ActorHead):
     @torch.jit.export
     def log_prob(self, meanlogstd: Tensor, action: Tensor) -> Tensor:
         """Get log probability of action from stacked mean log_std vector"""
+        if self.num_policies > 1 and (meanlogstd.ndim - action.ndim == 2): action = action.unsqueeze(-2)  # Get logprob for each subpolicy
         mean, log_std = meanlogstd.chunk(2, -1)
         mean = mean.squeeze(-1)
         log_std = log_std.squeeze(-1)
@@ -369,6 +386,7 @@ class DependentGaussianHead(ActorHead):
     @torch.jit.export
     def log_prob(self, meanlogstd: Tensor, action: Tensor) -> Tensor:
         """Get log probability of action from stacked mean log_std vector"""
+        if self.num_policies > 1 and (meanlogstd.ndim - action.ndim == 2): action = action.unsqueeze(-2)  # Get logprob for each subpolicy
         mean, log_std = meanlogstd.chunk(2, -1)
         mean = mean.squeeze(-1)
         log_std = log_std.squeeze(-1)
