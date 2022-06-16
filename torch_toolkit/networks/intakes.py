@@ -22,7 +22,7 @@ def build_intake_from_gym_env(envs: Env, **kwargs) -> Tuple[nn.Module, Union[int
     """Minimal intake for a gym observation. Return intake and its output size"""
     space = getattr(envs, 'single_observation_space', envs.observation_space)  # Try to get single (vector env), otherwise full
     if isinstance(space, spaces.Discrete):
-        return build_intake_from_discrete(space.n, **kwargs)
+        return build_intake_from_discrete(int(space.n), **kwargs)
     elif isinstance(space, spaces.Box):
         is_float = np.issubdtype(space.dtype, np.inexact)
         if is_float: return build_intake_from_float_box(space)
