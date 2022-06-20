@@ -2,7 +2,7 @@
 __all__ = ['build_action_head_from_gym_env',
            'build_separate_ff_actor_critic', 'build_separate_ff_option_actor',
            'ActorCritic_Unshared', 'OptionCritic_Unshared', 'FFActor', 'GRUActor', 'FFFullNet', 'GRUFullNet',
-           'build_mlp', 'InterestHead', 'BernoulliHead', 'build_separate_ff_interest']
+           'build_mlp', 'InterestHead', 'BernoulliHead', 'build_separate_ff_interest', 'DiscreteTerminationHead']
 
 import math
 from enum import IntEnum
@@ -442,6 +442,17 @@ class BernoulliHead(ActorHead):
         return torch.binary_cross_entropy_with_logits(logits, probs, reduction=0)
 
 
+class DiscreteTerminationHead(DiscreteHead):
+    """Categorical termination policy
+
+    Args:
+        in_size: Size of input from previous layer
+        num_policies: Number of options, essentially
+    """
+    def __init__(self, in_size: int, num_policies: int):
+        super().__init__(in_size, 2, num_policies)
+
+
 class CriticHead(nn.Module):
     """Value head"""
     def __init__(self, in_size: int, n: int = 1):
@@ -542,9 +553,9 @@ def build_separate_ff_option_actor(in_size: int, hidden_sizes: Sequence[int], hi
     return FFActor(build_mlp(in_size, hidden_sizes, hidden_activation), head)
 
 
-def build_separate_ff_termination(in_size: int, hidden_sizes: Sequence[int], hidden_activation: Callable[[], nn.Module] = Tanh, num_policies: int = 1) -> FFActor:
+def build_separate_ff_termination(in_size: int, hidden_sizes: Sequence[int], hidden_activation: Callable[[], nn.Module] = Tanh, num_policies: int = 1, categorical: bool = False) -> FFActor:
     """Bernoulli"""
-    head = BernoulliHead(hidden_sizes[-1], num_policies)
+    head = DiscreteTerminationHead(hidden_sizes[-1], num_policies) if categorical else BernoulliHead(hidden_sizes[-1], num_policies)
     return FFActor(build_mlp(in_size, hidden_sizes, hidden_activation), head)
 
 
