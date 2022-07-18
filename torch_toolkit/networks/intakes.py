@@ -54,7 +54,7 @@ def build_intake_from_discrete_box(space: spaces.Box, **kwargs) -> Tuple[nn.Modu
     layers = [FlattenLayer(space.shape)]  # Reshapes to [T?, B?, n]  #  3x3 -> 9
     if not embed_dim: layers.append(OneHotLayer(n))
     else: layers.append(nn.Embedding(n, embed_dim))  # -> [9,8]
-    layers.append(FlattenLayer(space.shape))  # -> 9*8
+    layers.append(FlattenLayer((2, 2)))  # -> 9*8  Always 2 dimesions at end (1 for embeddings, one for overall size)
     return nn.Sequential(*layers), numel * (embed_dim or n)
 
 
