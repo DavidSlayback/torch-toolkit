@@ -18,8 +18,8 @@ def str_to_iterable(string: Optional[str], return_type: Type = int, return_fn: C
     string = string.strip()  # Remove outer whitespace
     delims = string[0] + string[-1]  # Surrounding context (i.e., (), [], <>, etc)
     if not delims.isnumeric(): string = string.strip(delims)  # Remove it
-    vars = (s.strip() for s in string.split(', '))  # Split according to comma
-    return return_fn(return_type(v) for v in vars)
+    varis = (s.strip() for s in string.split(','))  # Split according to comma
+    return return_fn(return_type(v) for v in varis)
 
 
 def str_to_schedule(string: str, n_itr: int) -> Callable[[int], float]:
