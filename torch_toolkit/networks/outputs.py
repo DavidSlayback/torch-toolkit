@@ -179,7 +179,7 @@ class DiscreteHead(ActorHead):
         Returns:
             [T?, B, n_policy?] log probabilities of sampled action
         """
-        if self.num_policies > 1: return torch.take_along_dim(logits, action.reshape(logits.shape[:-2] + (1,1)), -1).squeeze(-1)
+        if self.num_policies > 1 and (len(logits.shape) - len(action.shape) > 1): return torch.take_along_dim(logits, action.reshape(logits.shape[:-2] + (1,1)), -1).squeeze(-1)
         else: return logits.gather(-1, action.unsqueeze(-1)).squeeze(-1)
 
     @torch.jit.export
